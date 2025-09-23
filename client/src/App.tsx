@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PortfolioFilters } from '@/components/PortfolioFilters';
+import { MaterialSelector } from '@/components/MaterialSelector';
 import { ShapeSelector } from '@/components/ShapeSelector';
 import { ShapeDims } from '@/components/ShapeDims';
 import { Options } from '@/components/Options';
@@ -152,7 +152,7 @@ function App() {
         {/* Left Sidebar */}
         <div className="w-96 border-r border-border bg-card overflow-y-auto">
           <div className="p-6 space-y-6">
-            <PortfolioFilters 
+            <MaterialSelector 
               selectedMaterial={selectedMaterial}
               onMaterialSelect={setSelectedMaterial}
             />
