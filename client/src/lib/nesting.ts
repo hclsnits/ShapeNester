@@ -21,25 +21,28 @@ export function calculateNesting(params: NestingParams): NestingSummary {
     : bbox;
   
   const sheetWidthBig = BigInt(params.sheetWidth);
-  const spacingBig = BigInt(params.spacing);
-  const kerfBig = BigInt(params.kerf);
-  const effectiveWidth = BigInt(effectiveBbox.width) + spacingBig + kerfBig;
-  const effectiveHeight = BigInt(effectiveBbox.height) + spacingBig + kerfBig;
+  // Convert decimal spacing and kerf to integers (in tenths of mm for precision)
+  const spacingBig = BigInt(Math.round(parseFloat(params.spacing) * 10));
+  const kerfBig = BigInt(Math.round(parseFloat(params.kerf) * 10));
+  const effectiveWidth = BigInt(effectiveBbox.width) * BigInt(10) + spacingBig + kerfBig;
+  const effectiveHeight = BigInt(effectiveBbox.height) * BigInt(10) + spacingBig + kerfBig;
   
-  // Calculate pieces per row
-  const piecesPerRow = sheetWidthBig >= effectiveWidth 
-    ? sheetWidthBig / effectiveWidth 
+  // Calculate pieces per row (convert sheet width to tenths for comparison)
+  const sheetWidthTenths = sheetWidthBig * BigInt(10);
+  const piecesPerRow = sheetWidthTenths >= effectiveWidth 
+    ? sheetWidthTenths / effectiveWidth 
     : BigInt(1);
   
   // Calculate number of rows needed
   const quantityBig = BigInt(params.quantity);
   const rows = (quantityBig + piecesPerRow - BigInt(1)) / piecesPerRow; // Ceiling division
   
-  // Calculate total length
-  const totalLength = rows * effectiveHeight;
+  // Calculate total length (convert back from tenths to mm)
+  const totalLength = rows * effectiveHeight / BigInt(10);
   
-  // Calculate rest width (unused width in each row)
-  const restWidth = sheetWidthBig - (piecesPerRow * effectiveWidth);
+  // Calculate rest width (unused width in each row, convert back to mm)
+  const restWidth = sheetWidthTenths - (piecesPerRow * effectiveWidth);
+  const restWidthMm = restWidth / BigInt(10);
   
   // Calculate material usage in m²
   const materialMm2 = sheetWidthBig * totalLength;
@@ -50,7 +53,7 @@ export function calculateNesting(params: NestingParams): NestingSummary {
     pieces_per_row: piecesPerRow.toString(),
     rows: rows.toString(),
     total_length_mm: totalLength.toString(),
-    rest_width_mm: restWidth.toString(),
+    rest_width_mm: restWidthMm.toString(),
     material_m2: materialM2
   };
 }
