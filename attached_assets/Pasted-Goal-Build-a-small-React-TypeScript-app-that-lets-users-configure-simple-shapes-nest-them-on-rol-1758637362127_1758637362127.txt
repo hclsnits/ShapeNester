@@ -1,0 +1,309 @@
+Goal: Build a small React + TypeScript app that lets users configure simple shapes, nest them on roll material, estimate cost, and export a report. Keep it client-side only.
+
+Tech & project setup
+
+Stack: Vite + React + TypeScript (SPA)
+
+Styling: TailwindCSS
+
+State: local component state + a simple cart stored in localStorage
+
+Build/Run: npm i → npm run dev
+
+Libraries:
+
+zod (validation)
+
+pdf-lib (PDF report export)
+
+xlsx (optional: export quote as .xlsx)
+
+file-saver (download blobs)
+
+uuid (IDs)
+
+(Optional) react-hook-form for forms
+
+Create the project (npm create vite@latest snijtool-v2 -- --template react-ts), install the deps above, set up Tailwind (postcss, autoprefixer), and add a clean, neutral UI.
+
+App behavior (high level)
+
+Material selection (Portfolio)
+
+A filterable table of materials loaded from an in-app JSON.
+
+Exactly one row must be selected to proceed.
+
+Material fields:
+artikelcode, materiaalsoort, densiteit_kg_m3, dikte_mm, doekbreedte_mm, kleur, prijs_per_m2_cents.
+
+Shape designer
+
+Shapes: rectangle, triangle, hexagon_flat, circle, ring, oval, oval_ring.
+
+Collect integer mm dimensions. Validate:
+
+ring: inner < outer
+
+oval_ring: all inner < outer pairs
+
+triangle: triangle inequality
+
+Compute area (mm²) and perimeter (mm) using BigInt-safe math where relevant. Store dims as strings (so JSON safe).
+
+Nesting (roll layout)
+
+Input: sheet width (from selected material doekbreedte_mm), quantity, spacing (mm), kerf (mm), orientation (0°/90°).
+
+Algo (simple, deterministic):
+
+Compute a shape bounding box (mm) and “effective width” = bbox width + spacing + kerf; “effective height” analog.
+
+Pieces/row = floor(sheet_width / effective_width).
+
+Rows = ceil(quantity / pieces/row).
+
+Total roll length (mm) = rows * effective_height.
+
+Material used m² = (sheet_width * total_length_mm) / 1e6.
+
+Expose: orientation, pieces_per_row, rows, total_length_mm, rest_width_mm, material_m2.
+
+Costing
+
+Inputs (with defaults from selected material when possible):
+quantity, price_per_m2 (€), hourly_rate (€ / h), cutting_speed (cm/s), kerf, spacing, KOT (fixed order fee, €).
+
+Work time (minutes) ≈ (perimeter_mm / 10) / cutting_speed_cm_s / 60 × quantity. (You may refine; keep simple, transparent.)
+
+Base m² = material_m2.
+
+Material cost = base_m2 × price_per_m2.
+
+Work cost = hours × hourly_rate.
+
+Options cost (sum of toggles × unit price). Provide 2–3 dummy toggles (e.g., deburring, labeling).
+
+Total = material + work + options + KOT.
+
+Keep all money in cents internally, display in € 1.234,56 format.
+
+Cart & Quote
+
+“Add to cart” captures: material snapshot, shape + dims, nesting summary, costing breakdown, quantity.
+
+Cart stored in localStorage, shows line totals and cart total.
+
+“Export quote” → PDF with: header, material summary, shape + dims, nesting table, costing breakdown, and totals. Also allow XLSX export of the same data.
+
+Exports (design)
+
+SVG preview of a single piece outline + a simplified sheet layout (rows × cols rectangles).
+
+PDF (via pdf-lib) includes numbers + a small embedded SVG (as an image) or draw vector rectangles for layout.
+
+UX flow (pages/sections)
+
+Top bar: brand “Snijtool v2”, buttons: Export PDF, Export XLSX, Cart.
+
+Left column: PortfolioFilters (material filters + table), ShapeSelector, ShapeDims, Options.
+
+Right column: CostingPanel (inputs + computed results, Add to Cart), Nesting preview (SVG), ShippingPanel (optional: flat-rate).
+
+Drawer/Modal: CartDrawer showing items with “Load in designer”, “Remove”, and totals.
+
+Data models (TypeScript)
+export type MoneyCents = bigint; // store as bigint
+export type DecScaled = { i: string; scale: number }; // decimal fixed-point
+
+export type Material = {
+  artikelcode: string;
+  materiaalsoort: string;
+  densiteit_kg_m3: DecScaled;   // e.g. { i: "45", scale: 0 }
+  dikte_mm: string;              // BigInt as string
+  doekbreedte_mm: string;        // BigInt as string
+  kleur: string;
+  prijs_per_m2_cents: string;    // BigInt as string
+};
+
+export type ShapeKind =
+  | "rectangle" | "triangle" | "hexagon_flat" | "circle" | "ring" | "oval" | "oval_ring";
+
+export type ShapeDims = Record<string, string>; // all mm BigInt strings
+
+export type NestingSummary = {
+  orientation: 0 | 90;
+  pieces_per_row: string;
+  rows: string;
+  total_length_mm: string;
+  rest_width_mm: string;
+  material_m2: DecScaled;
+};
+
+export type CostBreakdown = {
+  base_m2: DecScaled;
+  material_cost_cents: string;
+  options_cost_cents: string;
+  work_cost_cents: string;
+  kot_cents: string;
+  total_cents: string;
+};
+
+export type CartItem = {
+  id: string;
+  created_at: string;
+  material: Material;
+  shape: ShapeKind;
+  dims: ShapeDims;
+  amount: number;
+  nesting: NestingSummary;
+  costing: CostBreakdown;
+};
+
+Files to implement
+
+Create these components (names are suggestions; keep them small and focused):
+
+src/App.tsx — App shell, routing-free layout, topbar, state wiring, export buttons.
+
+src/components/PortfolioFilters.tsx — filter inputs + table (single-select).
+
+src/components/ShapeSelector.tsx — radio cards for shape kinds.
+
+src/components/ShapeDims.tsx — dynamic form based on shape; validates with zod.
+
+src/components/Options.tsx — toggle chips for extras (e.g., labeling, chamfer).
+
+src/components/NestingPreview.tsx — renders SVG of piece bbox + roll layout.
+
+src/components/CostingPanel.tsx — inputs (price/m², hourly, speed, kerf, spacing, KOT), results, Add to Cart button.
+
+src/components/CartDrawer.tsx / CartItem.tsx — show items, remove, load in designer.
+
+src/components/ShippingPanel.tsx — optional: simple flat-rate selector.
+
+src/lib/geometry/{bbox,area,perimeter}.ts — pure functions per shape.
+
+src/lib/nesting.ts — algorithm described above.
+
+src/lib/costing.ts — costing math + money helpers.
+
+src/lib/money.ts — formatCentsEUR(cents: bigint): string, toCents(n: number): bigint.
+
+src/lib/units.ts — mm↔m conversions using BigInt where applicable.
+
+src/lib/numberParsing.ts — parse decimal strings to DecScaled.
+
+src/lib/download.ts — blob helpers (FileSaver).
+
+src/lib/xlsx.ts — export cart or current config to XLSX.
+
+src/lib/pdf.ts — build the PDF report via pdf-lib.
+
+src/lib/cartStorage.ts — localStorage get/set/clear by key.
+
+src/data/materials.json — initial mock portfolio (see below).
+
+Geometry details
+
+Implement area/perimeter/bbox per shape:
+
+rectangle: w×h; perimeter 2(w+h); bbox w,h.
+
+triangle: given sides a,b,c (validate inequality). Area via Heron; bbox: fit minimal rect given base and height (approx: use bounding rect of right triangle via formula; acceptable to treat as width=max side projection w.r.t base and height from area/base).
+
+hexagon_flat: parameter = flat-to-flat f; side s = f/√3; bbox width=f, height=2s. Area = (3√3/2)s² * 2 or directly from f.
+
+circle: d; area π(d/2)^2; perimeter πd; bbox d,d.
+
+ring: od, id (od>id); area = area(od circle) − area(id circle); perimeter = π(od+id); bbox od,od.
+
+oval (ellipse): a (major), b (minor); area πab; perimeter: Ramanujan approximation.
+
+oval_ring: outer a,b, inner ai,bi (all inner < outer); area = outer − inner; perimeter ≈ sum of both perimeters.
+
+Use BigInt carefully; for non-integer ops (π, √), use fixed-point (DecScaled) and round late.
+
+Nesting details
+
+For orientation 0° use bbox as is; for 90° swap w/h.
+
+pieces_per_row = max(1, floor(sheet_width / (bbox_w + spacing + kerf))).
+
+rows = ceil(quantity / pieces_per_row).
+
+total_length_mm = rows * (bbox_h + spacing + kerf).
+
+rest_width_mm = sheet_width % (bbox_w + spacing + kerf).
+
+material_m2 = { i: floor(sheet_width * total_length_mm), scale: 6 } (mm² → m²).
+
+Costing details
+
+base_m2 = material_m2.
+
+material_cost_cents = base_m2(i / 10^scale) * price_per_m2 * 100, careful with scaling.
+
+Cutting speed in cm/s; perimeter in mm → convert to cm.
+
+Work minutes = (perimeter_mm/10) / speed_cm_s / 60 * quantity.
+
+work_cost_cents = round(minutes/60 * hourly_rate_eur * 100).
+
+Add kot_cents and any options.
+
+Provide a small helper to safely multiply/divide bigint and DecScaled without precision loss.
+
+Sample materials (src/data/materials.json)
+[
+  {
+    "artikelcode": "ART-001",
+    "materiaalsoort": "Felt",
+    "densiteit_kg_m3": { "i": "45", "scale": 0 },
+    "dikte_mm": "10",
+    "doekbreedte_mm": "1500",
+    "kleur": "Grey",
+    "prijs_per_m2_cents": "3500"
+  },
+  {
+    "artikelcode": "ART-002",
+    "materiaalsoort": "Foam",
+    "densiteit_kg_m3": { "i": "30", "scale": 0 },
+    "dikte_mm": "5",
+    "doekbreedte_mm": "2000",
+    "kleur": "Black",
+    "prijs_per_m2_cents": "2200"
+  }
+]
+
+UI acceptance criteria
+
+You cannot compute nesting/costing until exactly one material is selected and all required dims are valid.
+
+All money shown as Euros with thousands separators and 2 decimals.
+
+“Add to cart” produces an item of type CartItem (see types) and persists to localStorage.
+
+“Export PDF” generates a single-page summary with all key figures (material, dims, nesting, costs).
+
+“Export XLSX” writes a sheet with the same fields; downloading works in the browser.
+
+Reloading the app restores the cart.
+
+Users can click a cart item to load it back into the designer.
+
+Developer notes
+
+Keep modules pure; put parsing/formatting at the edges.
+
+Prefer small components; no global state library.
+
+Include 2–3 short unit tests in src/lib/__tests__ (geometry & nesting) using Vitest.
+
+Ship with sensible defaults: cutting_speed=7 (cm/s), hourly_rate=40, spacing=0, kerf=0, KOT=500 (€5.00).
+
+Deliverables: working app with the file structure above, fully typed, with a clean UI and the features described.
+
+Tip: after Replit generates the scaffold, run it and check:
+
+select material → pick shape → fill dims → see SVG preview → enter quantity → see nesting & cost → add to cart → export PDF/XLSX.
