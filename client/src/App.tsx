@@ -7,6 +7,7 @@ import { NestingPreview } from '@/components/NestingPreview';
 import { CostingPanel } from '@/components/CostingPanel';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ShippingPanel } from '@/components/ShippingPanel';
+import { ConfigurationWizard } from '@/components/wizard/ConfigurationWizard';
 import { Material, ShapeKind, ShapeDims as ShapeDimsType, CartItem } from '@/types';
 import { PortfolioRow } from '@/lib/portfolio-parser';
 import { portfolioRowToMaterial, materialToPortfolioRow } from '@/lib/material-converter';
@@ -16,7 +17,7 @@ import { exportCartToXLSX } from '@/lib/xlsx';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
-import { FileText, FileSpreadsheet, ShoppingCart } from 'lucide-react';
+import { FileText, FileSpreadsheet, ShoppingCart, Settings, Zap } from 'lucide-react';
 
 function App() {
   const [selectedMaterial, setSelectedMaterial] = useState<PortfolioRow | null>(null);
@@ -26,6 +27,7 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState('standard');
+  const [isWizardMode, setIsWizardMode] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -119,6 +121,23 @@ function App() {
           
           <div className="flex items-center space-x-3">
             <Button 
+              variant={isWizardMode ? "outline" : "default"}
+              onClick={() => setIsWizardMode(!isWizardMode)}
+              data-testid="button-toggle-mode"
+            >
+              {isWizardMode ? (
+                <>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Advanced Mode
+                </>
+              ) : (
+                <>
+                  <Zap className="mr-2 h-4 w-4" />
+                  Wizard Mode
+                </>
+              )}
+            </Button>
+            <Button 
               variant="outline" 
               onClick={handleExportPDF}
               data-testid="button-export-pdf"
@@ -150,59 +169,77 @@ function App() {
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Sidebar */}
-        <div className="w-96 border-r border-border bg-card overflow-y-auto">
-          <div className="p-6 space-y-6">
-            <PortfolioFilters 
-              selectedMaterial={selectedMaterial}
-              onMaterialSelect={setSelectedMaterial}
-            />
-            
-            <ShapeSelector 
-              selectedShape={selectedShape}
-              onShapeSelect={setSelectedShape}
-            />
-            
-            <ShapeDims 
-              shape={selectedShape}
-              dims={shapeDims}
-              onDimsChange={setShapeDims}
-            />
-            
-            <Options 
-              selectedOptions={options}
-              onOptionsChange={setOptions}
-            />
-          </div>
-        </div>
-
-        {/* Main Content */}
+      {isWizardMode ? (
+        /* Wizard Mode */
         <div className="flex-1 overflow-y-auto bg-background">
-          <div className="p-6">
-            <NestingPreview 
-              shape={selectedShape}
-              dims={shapeDims}
-              material={selectedMaterial ? portfolioRowToMaterial(selectedMaterial) : null}
-            />
-          </div>
-        </div>
-
-        {/* Right Panel */}
-        <div className="w-80 border-l border-border bg-card overflow-y-auto">
-          <CostingPanel 
-            material={selectedMaterial ? portfolioRowToMaterial(selectedMaterial) : null}
-            shape={selectedShape}
-            dims={shapeDims}
-            options={options}
+          <ConfigurationWizard
+            selectedMaterial={selectedMaterial}
+            selectedShape={selectedShape}
+            shapeDims={shapeDims}
+            selectedOptions={options}
+            onMaterialSelect={setSelectedMaterial}
+            onShapeSelect={setSelectedShape}
+            onDimsChange={setShapeDims}
+            onOptionsChange={setOptions}
             onAddToCart={handleAddToCart}
           />
-          <ShippingPanel 
-            selectedShipping={selectedShipping}
-            onShippingChange={setSelectedShipping}
-          />
         </div>
-      </div>
+      ) : (
+        /* Advanced Mode */
+        <div className="flex flex-1 overflow-hidden">
+          {/* Left Sidebar */}
+          <div className="w-96 border-r border-border bg-card overflow-y-auto">
+            <div className="p-6 space-y-6">
+              <PortfolioFilters 
+                selectedMaterial={selectedMaterial}
+                onMaterialSelect={setSelectedMaterial}
+              />
+              
+              <ShapeSelector 
+                selectedShape={selectedShape}
+                onShapeSelect={setSelectedShape}
+              />
+              
+              <ShapeDims 
+                shape={selectedShape}
+                dims={shapeDims}
+                onDimsChange={setShapeDims}
+              />
+              
+              <Options 
+                selectedOptions={options}
+                onOptionsChange={setOptions}
+              />
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto bg-background">
+            <div className="p-6">
+              <NestingPreview 
+                shape={selectedShape}
+                dims={shapeDims}
+                material={selectedMaterial ? portfolioRowToMaterial(selectedMaterial) : null}
+              />
+            </div>
+          </div>
+
+          {/* Right Panel */}
+          <div className="w-80 border-l border-border bg-card overflow-y-auto">
+            <CostingPanel 
+              material={selectedMaterial ? portfolioRowToMaterial(selectedMaterial) : null}
+              shape={selectedShape}
+              dims={shapeDims}
+              options={options}
+              onAddToCart={handleAddToCart}
+            />
+            <ShippingPanel 
+              selectedShipping={selectedShipping}
+              onShippingChange={setSelectedShipping}
+            />
+          </div>
+        </div>
+      )}
 
       <CartDrawer 
         isOpen={isCartOpen}
