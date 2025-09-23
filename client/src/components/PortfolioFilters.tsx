@@ -38,7 +38,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
     if (!portfolioData) return [];
     
     return portfolioData.materials.filter((material: PortfolioRow) => {
-      const densiteitMatch = !densiteitFilter || densiteitFilter === '__all__' || String(material.densiteit_raw) === densiteitFilter;
+      const densiteitMatch = !densiteitFilter || densiteitFilter === '__all__' || material.densiteit_g_cm3_key === densiteitFilter;
       const dikteMatch = !dikteFilter || dikteFilter === '__all__' || String(material.dikte_mm) === dikteFilter;
       const colorMatch = !colorFilter || colorFilter === '__all__' || material.kleur === colorFilter;
       return densiteitMatch && dikteMatch && colorMatch;
@@ -56,7 +56,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
     // If density is selected, only show thicknesses for that density
     if (densiteitFilter && densiteitFilter !== '__all__') {
       const validMaterials = portfolioData.materials.filter((material: PortfolioRow) => 
-        String(material.densiteit_raw) === densiteitFilter
+        material.densiteit_g_cm3_key === densiteitFilter
       );
       const diktes = new Set<string>();
       validMaterials.forEach(material => {
@@ -78,7 +78,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
     
     if (densiteitFilter && densiteitFilter !== '__all__') {
       validMaterials = validMaterials.filter((material: PortfolioRow) => 
-        String(material.densiteit_raw) === densiteitFilter
+        material.densiteit_g_cm3_key === densiteitFilter
       );
     }
     
@@ -203,9 +203,8 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
               if (!material.artikelcode) return null;
               
               const densityDisplay = () => {
-                if (material.densiteit_raw == null) return 'N/A';
-                const numericValue = parseFloat(String(material.densiteit_raw));
-                return !isNaN(numericValue) ? `${material.densiteit_raw} g/cm³` : String(material.densiteit_raw);
+                if (material.densiteit_g_cm3 == null) return 'N/A';
+                return `${material.densiteit_g_cm3.toFixed(2)} g/cm³`;
               };
               
               return (

@@ -13,8 +13,8 @@ export function portfolioRowToMaterial(row: PortfolioRow): Material {
     artikelcode: row.artikelcode,
     materiaalsoort: row.materiaalsoort,
     densiteit_g_cm3: {
-      i: String(row.densiteit_raw || '0'),
-      scale: 0
+      i: String(row.densiteit_g_cm3 || '0'),
+      scale: 2
     },
     dikte_mm: String(row.dikte_mm || '0'),
     doekbreedte_mm: String(row.doekbreedte_mm || '1500'),
@@ -27,10 +27,13 @@ export function portfolioRowToMaterial(row: PortfolioRow): Material {
  * Convert Material to PortfolioRow type
  */
 export function materialToPortfolioRow(material: Material): PortfolioRow {
+  const densityValue = parseFloat(material.densiteit_g_cm3.i) || 0;
   return {
     artikelcode: material.artikelcode,
     materiaalsoort: material.materiaalsoort,
-    densiteit_raw: parseFloat(material.densiteit_g_cm3.i) || 0,
+    densiteit_raw: densityValue,
+    densiteit_g_cm3: densityValue,
+    densiteit_g_cm3_key: densityValue.toFixed(2),
     dikte_mm: parseFloat(material.dikte_mm) || null,
     doekbreedte_mm: parseFloat(material.doekbreedte_mm) || null,
     kleur: material.kleur,

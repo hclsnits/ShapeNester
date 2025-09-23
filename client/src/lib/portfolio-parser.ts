@@ -6,6 +6,8 @@ export type PortfolioRow = {
   artikelcode: string | null;
   materiaalsoort: string | null;
   densiteit_raw: string | number | null;     // kept as string if it's a label like "Wolvilt 100%"
+  densiteit_g_cm3: number | null;            // converted to g/cm³ for display and filtering
+  densiteit_g_cm3_key: string | null;        // formatted string for consistent filtering
   dikte_mm: number | null;                   // number in millimeters
   doekbreedte_mm: number | null;             // number in millimeters
   kleur: string | null;
@@ -75,6 +77,50 @@ function toSpeedCmPerSec(value: any): number | null {
   return Math.round(n * 1000) / 1000;
 }
 
+/** Convert density to g/cm³ with unit detection */
+function convertDensityToGCm3(value: any, matchedHeader: string): { g_cm3: number | null; key: string | null; raw: string | number | null } {
+  const n = parseNumberEU(value);
+  
+  // If not numeric, keep as string for special labels like "Wolvilt 100%"
+  if (n == null) {
+    const s = String(value ?? "").trim();
+    return {
+      g_cm3: null,
+      key: null,
+      raw: s || null
+    };
+  }
+
+  // Detect unit from header
+  const headerLower = matchedHeader.toLowerCase();
+  let gCm3Value: number;
+  
+  if (headerLower.includes("kg") || headerLower.includes("kg/m3") || headerLower.includes("kg m3")) {
+    // Source is kg/m³, convert to g/cm³ (divide by 1000)
+    gCm3Value = n / 1000;
+  } else if (headerLower.includes("g") || headerLower.includes("g/cm3") || headerLower.includes("g cm3")) {
+    // Source is already g/cm³
+    gCm3Value = n;
+  } else {
+    // Ambiguous header - use magnitude heuristic
+    // Typical felt densities: 80-250 kg/m³ = 0.08-0.25 g/cm³
+    if (n > 10) {
+      // Likely kg/m³
+      gCm3Value = n / 1000;
+      console.warn(`Density unit ambiguous for value ${n}, assuming kg/m³ and converting to g/cm³`);
+    } else {
+      // Likely already g/cm³
+      gCm3Value = n;
+    }
+  }
+
+  return {
+    g_cm3: gCm3Value,
+    key: gCm3Value.toFixed(2),
+    raw: n
+  };
+}
+
 /** Map many possible header variants to our canonical field names */
 const HEADER_MAP: Record<string, keyof PortfolioRow> = {
   // artikelcode
@@ -97,6 +143,10 @@ const HEADER_MAP: Record<string, keyof PortfolioRow> = {
   "density": "densiteit_raw",
   "densiteit kg m3": "densiteit_raw",
   "dichtheid kg m3": "densiteit_raw",
+  "densiteit g cm3": "densiteit_raw",
+  "dichtheid g cm3": "densiteit_raw",
+  "g cm3": "densiteit_raw",
+  "kg m3": "densiteit_raw",
 
   // dikte (mm)
   "dikte": "dikte_mm",
@@ -181,11 +231,13 @@ export async function parsePortfolioXlsx(file: File): Promise<PortfolioRow[]> {
   const headerRowIndex = findHeaderRow(aoa);
   const headerRow = aoa[headerRowIndex] as string[];
 
-  // Build column -> field map
+  // Build column -> field map and track original headers for density unit detection
   const colToField: Record<number, keyof PortfolioRow | null> = {};
+  const colToOriginalHeader: Record<number, string> = {};
   headerRow.forEach((raw, idx) => {
     const key = normHeader(String(raw));
     colToField[idx] = HEADER_MAP[key] ?? null;
+    colToOriginalHeader[idx] = String(raw);
   });
 
   // Iterate data rows (start after the detected header)
@@ -198,6 +250,8 @@ export async function parsePortfolioXlsx(file: File): Promise<PortfolioRow[]> {
       artikelcode: null,
       materiaalsoort: null,
       densiteit_raw: null,
+      densiteit_g_cm3: null,
+      densiteit_g_cm3_key: null,
       dikte_mm: null,
       doekbreedte_mm: null,
       kleur: null,
@@ -229,9 +283,12 @@ export async function parsePortfolioXlsx(file: File): Promise<PortfolioRow[]> {
           break;
 
         case "densiteit_raw": {
-          // keep textual values (e.g., "Wolvilt 100%") as-is; if numeric, keep numeric
-          const n = parseNumberEU(cell);
-          acc.densiteit_raw = n != null ? n : String(cell ?? "").trim() || null;
+          // Convert density with unit detection
+          const originalHeader = colToOriginalHeader[c] || "";
+          const densityData = convertDensityToGCm3(cell, originalHeader);
+          acc.densiteit_raw = densityData.raw;
+          acc.densiteit_g_cm3 = densityData.g_cm3;
+          acc.densiteit_g_cm3_key = densityData.key;
           break;
         }
 
@@ -276,11 +333,13 @@ export async function parsePortfolioFromBuffer(buffer: ArrayBuffer): Promise<Por
   const headerRowIndex = findHeaderRow(aoa);
   const headerRow = aoa[headerRowIndex] as string[];
 
-  // Build column -> field map
+  // Build column -> field map and track original headers for density unit detection
   const colToField: Record<number, keyof PortfolioRow | null> = {};
+  const colToOriginalHeader: Record<number, string> = {};
   headerRow.forEach((raw, idx) => {
     const key = normHeader(String(raw));
     colToField[idx] = HEADER_MAP[key] ?? null;
+    colToOriginalHeader[idx] = String(raw);
   });
 
   // Iterate data rows (start after the detected header)
@@ -293,6 +352,8 @@ export async function parsePortfolioFromBuffer(buffer: ArrayBuffer): Promise<Por
       artikelcode: null,
       materiaalsoort: null,
       densiteit_raw: null,
+      densiteit_g_cm3: null,
+      densiteit_g_cm3_key: null,
       dikte_mm: null,
       doekbreedte_mm: null,
       kleur: null,
@@ -324,9 +385,12 @@ export async function parsePortfolioFromBuffer(buffer: ArrayBuffer): Promise<Por
           break;
 
         case "densiteit_raw": {
-          // keep textual values (e.g., "Wolvilt 100%") as-is; if numeric, keep numeric
-          const n = parseNumberEU(cell);
-          acc.densiteit_raw = n != null ? n : String(cell ?? "").trim() || null;
+          // Convert density with unit detection
+          const originalHeader = colToOriginalHeader[c] || "";
+          const densityData = convertDensityToGCm3(cell, originalHeader);
+          acc.densiteit_raw = densityData.raw;
+          acc.densiteit_g_cm3 = densityData.g_cm3;
+          acc.densiteit_g_cm3_key = densityData.key;
           break;
         }
 
@@ -384,8 +448,8 @@ export async function loadMaterialPortfolio(): Promise<ParsedPortfolioData> {
     const colors = new Set<string>();
     
     materials.forEach(material => {
-      if (material.densiteit_raw != null) {
-        densiteits.add(String(material.densiteit_raw));
+      if (material.densiteit_g_cm3_key != null) {
+        densiteits.add(material.densiteit_g_cm3_key);
       }
       if (material.dikte_mm != null) {
         diktes.add(String(material.dikte_mm));

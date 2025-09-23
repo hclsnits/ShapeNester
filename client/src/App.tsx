@@ -19,7 +19,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { FileText, FileSpreadsheet, ShoppingCart } from 'lucide-react';
 
 function App() {
-  const [selectedMaterial, setSelectedMaterial] = useState<Material | null>(null);
+  const [selectedMaterial, setSelectedMaterial] = useState<PortfolioRow | null>(null);
   const [selectedShape, setSelectedShape] = useState<ShapeKind>('rectangle');
   const [shapeDims, setShapeDims] = useState<ShapeDimsType>({});
   const [options, setOptions] = useState<string[]>([]);
@@ -43,7 +43,7 @@ function App() {
   };
 
   const handleLoadItemInDesigner = (item: CartItem) => {
-    setSelectedMaterial(item.material);
+    setSelectedMaterial(materialToPortfolioRow(item.material));
     setSelectedShape(item.shape);
     setShapeDims(item.dims);
     setIsCartOpen(false);
@@ -183,7 +183,7 @@ function App() {
             <NestingPreview 
               shape={selectedShape}
               dims={shapeDims}
-              material={selectedMaterial}
+              material={selectedMaterial ? portfolioRowToMaterial(selectedMaterial) : null}
             />
           </div>
         </div>
@@ -191,7 +191,7 @@ function App() {
         {/* Right Panel */}
         <div className="w-80 border-l border-border bg-card overflow-y-auto">
           <CostingPanel 
-            material={selectedMaterial}
+            material={selectedMaterial ? portfolioRowToMaterial(selectedMaterial) : null}
             shape={selectedShape}
             dims={shapeDims}
             options={options}
