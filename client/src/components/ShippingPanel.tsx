@@ -1,15 +1,14 @@
-import { useState } from 'react';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
-interface ShippingOption {
+export interface ShippingOption {
   id: string;
   label: string;
   description: string;
   price: number;
 }
 
-const shippingOptions: ShippingOption[] = [
+export const shippingOptions: ShippingOption[] = [
   {
     id: 'standard',
     label: 'Standard Delivery',
@@ -30,14 +29,18 @@ const shippingOptions: ShippingOption[] = [
   }
 ];
 
-export function ShippingPanel() {
-  const [selectedShipping, setSelectedShipping] = useState('standard');
+interface ShippingPanelProps {
+  selectedShipping: string;
+  onShippingChange: (shippingId: string) => void;
+}
+
+export function ShippingPanel({ selectedShipping, onShippingChange }: ShippingPanelProps) {
 
   return (
     <div className="border-t border-border p-6" data-testid="shipping-panel">
       <h3 className="text-sm font-semibold text-foreground mb-3">Shipping Options</h3>
       
-      <RadioGroup value={selectedShipping} onValueChange={setSelectedShipping} className="space-y-3">
+      <RadioGroup value={selectedShipping} onValueChange={onShippingChange} className="space-y-3">
         {shippingOptions.map(option => (
           <Label
             key={option.id}

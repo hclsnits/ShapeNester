@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { useToast } from '@/hooks/use-toast';
 import { CreditCard, Trash2 } from 'lucide-react';
+import { shippingOptions } from '@/components/ShippingPanel';
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -13,9 +14,10 @@ interface CartDrawerProps {
   items: CartItem[];
   onItemsChange: (items: CartItem[]) => void;
   onLoadItem: (item: CartItem) => void;
+  selectedShipping: string;
 }
 
-export function CartDrawer({ isOpen, onClose, items, onItemsChange, onLoadItem }: CartDrawerProps) {
+export function CartDrawer({ isOpen, onClose, items, onItemsChange, onLoadItem, selectedShipping }: CartDrawerProps) {
   const { toast } = useToast();
 
   const handleRemoveItem = (itemId: string) => {
@@ -38,7 +40,8 @@ export function CartDrawer({ isOpen, onClose, items, onItemsChange, onLoadItem }
   };
 
   const subtotal = items.reduce((sum, item) => sum + centsToEuros(item.costing.total_cents), 0);
-  const shipping = 12.50; // Standard shipping
+  const selectedShippingOption = shippingOptions.find(option => option.id === selectedShipping);
+  const shipping = selectedShippingOption?.price || 0;
   const total = subtotal + shipping;
 
   return (

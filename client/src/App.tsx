@@ -23,6 +23,7 @@ function App() {
   const [options, setOptions] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [selectedShipping, setSelectedShipping] = useState('standard');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -194,7 +195,10 @@ function App() {
             options={options}
             onAddToCart={handleAddToCart}
           />
-          <ShippingPanel />
+          <ShippingPanel 
+            selectedShipping={selectedShipping}
+            onShippingChange={setSelectedShipping}
+          />
         </div>
       </div>
 
@@ -204,6 +208,7 @@ function App() {
         items={cartItems}
         onItemsChange={setCartItems}
         onLoadItem={handleLoadItemInDesigner}
+        selectedShipping={selectedShipping}
       />
     </div>
   );
