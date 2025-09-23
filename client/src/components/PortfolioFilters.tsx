@@ -1,7 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Material } from '@/types';
-import materials from '@/data/materials.json';
+import { loadMaterialPortfolio } from '@/lib/excel-parser';
 import { formatCentsEUR } from '@/lib/money';
+
+interface ParsedPortfolioData {
+  materials: Material[];
+  densiteits: string[];
+  diktes: string[];
+  colors: string[];
+}
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -15,27 +22,78 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
   const [densiteitFilter, setDensiteitFilter] = useState<string>('');
   const [dikteFilter, setDikteFilter] = useState<string>('');
   const [colorFilter, setColorFilter] = useState<string>('');
+  const [portfolioData, setPortfolioData] = useState<ParsedPortfolioData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Load portfolio data from Excel
+  useEffect(() => {
+    loadMaterialPortfolio()
+      .then(data => {
+        setPortfolioData(data);
+        setError(null);
+      })
+      .catch(err => {
+        console.error('Failed to load portfolio:', err);
+        setError('Failed to load material portfolio');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
 
   const filteredMaterials = useMemo(() => {
-    return materials.filter(material => {
+    if (!portfolioData) return [];
+    
+    return portfolioData.materials.filter((material: Material) => {
       const densiteitMatch = !densiteitFilter || densiteitFilter === '__all__' || String(material.densiteit_kg_m3.i) === densiteitFilter;
       const dikteMatch = !dikteFilter || dikteFilter === '__all__' || String(material.dikte_mm) === dikteFilter;
       const colorMatch = !colorFilter || colorFilter === '__all__' || material.kleur.toLowerCase().includes(colorFilter.toLowerCase());
       return densiteitMatch && dikteMatch && colorMatch;
     });
-  }, [densiteitFilter, dikteFilter, colorFilter]);
+  }, [portfolioData, densiteitFilter, dikteFilter, colorFilter]);
 
   const uniqueDensiteits = useMemo(() => {
-    return Array.from(new Set(materials.map(m => String(m.densiteit_kg_m3.i)))).sort((a, b) => Number(a) - Number(b));
-  }, []);
+    return portfolioData?.densiteits || [];
+  }, [portfolioData]);
 
   const uniqueDiktes = useMemo(() => {
-    return Array.from(new Set(materials.map(m => String(m.dikte_mm)))).sort((a, b) => Number(a) - Number(b));
-  }, []);
+    return portfolioData?.diktes || [];
+  }, [portfolioData]);
 
   const uniqueColors = useMemo(() => {
-    return Array.from(new Set(materials.map(m => m.kleur)));
-  }, []);
+    return portfolioData?.colors || [];
+  }, [portfolioData]);
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-4" data-testid="portfolio-filters">
+        <h2 className="text-lg font-semibold text-foreground">Material Selection</h2>
+        <div className="text-center py-8">
+          <div className="text-muted-foreground">Loading portfolio data...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-4" data-testid="portfolio-filters">
+        <h2 className="text-lg font-semibold text-foreground">Material Selection</h2>
+        <div className="text-center py-8">
+          <div className="text-destructive">{error}</div>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="mt-2 text-sm text-primary hover:underline"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4" data-testid="portfolio-filters">
@@ -50,7 +108,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Alle</SelectItem>
-              {uniqueDensiteits.map(densiteit => (
+              {uniqueDensiteits.map((densiteit: string) => (
                 <SelectItem key={densiteit} value={densiteit}>{densiteit} kg/m³</SelectItem>
               ))}
             </SelectContent>
@@ -65,7 +123,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Alle</SelectItem>
-              {uniqueDiktes.map(dikte => (
+              {uniqueDiktes.map((dikte: string) => (
                 <SelectItem key={dikte} value={dikte}>{dikte}mm</SelectItem>
               ))}
             </SelectContent>
@@ -80,7 +138,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Alle</SelectItem>
-              {uniqueColors.map(color => (
+              {uniqueColors.map((color: string) => (
                 <SelectItem key={color} value={color}>{color}</SelectItem>
               ))}
             </SelectContent>
@@ -104,7 +162,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </tr>
           </thead>
           <tbody>
-            {filteredMaterials.map(material => (
+            {filteredMaterials.map((material: Material) => (
               <tr
                 key={material.artikelcode}
                 className={`border-b border-border hover:bg-muted/50 cursor-pointer ${
@@ -117,7 +175,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
                   <RadioGroup
                     value={selectedMaterial?.artikelcode || ''}
                     onValueChange={(value) => {
-                      const mat = materials.find(m => m.artikelcode === value);
+                      const mat = portfolioData?.materials.find((m: Material) => m.artikelcode === value);
                       onMaterialSelect(mat || null);
                     }}
                   >
