@@ -29,7 +29,7 @@ export function calculateNesting(params: NestingParams): NestingSummary {
   
   // Calculate pieces per row (convert sheet width to tenths for comparison)
   const sheetWidthTenths = sheetWidthBig * BigInt(10);
-  const piecesPerRow = sheetWidthTenths >= effectiveWidth 
+  const piecesPerRow = effectiveWidth > BigInt(0) && sheetWidthTenths >= effectiveWidth 
     ? sheetWidthTenths / effectiveWidth 
     : BigInt(1);
   

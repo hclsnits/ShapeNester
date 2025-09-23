@@ -42,8 +42,17 @@ export function ShapeDims({ shape, dims, onDimsChange }: ShapeDimsProps) {
       const outer = parseInt(newDims.outer_diameter || '0');
       const inner = parseInt(newDims.inner_diameter || '0');
       
-      if (key === 'inner_diameter' && inner >= outer) {
-        newErrors[key] = 'Inner diameter must be less than outer';
+      // Clear any existing ring validation errors first
+      delete newErrors['outer_diameter'];
+      delete newErrors['inner_diameter'];
+      
+      // Validate ring constraints if both values are present
+      if (outer > 0 && inner > 0 && inner >= outer) {
+        if (key === 'inner_diameter') {
+          newErrors[key] = 'Inner diameter must be less than outer';
+        } else if (key === 'outer_diameter') {
+          newErrors[key] = 'Outer diameter must be greater than inner';
+        }
       }
     }
     
