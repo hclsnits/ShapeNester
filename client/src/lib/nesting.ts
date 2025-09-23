@@ -29,9 +29,21 @@ export function calculateNesting(params: NestingParams): NestingSummary {
   
   // Calculate pieces per row (convert sheet width to tenths for comparison)
   const sheetWidthTenths = sheetWidthBig * BigInt(10);
-  const piecesPerRow = effectiveWidth > BigInt(0) && sheetWidthTenths >= effectiveWidth 
-    ? sheetWidthTenths / effectiveWidth 
-    : BigInt(1);
+  
+  // Check if part fits on sheet width
+  if (effectiveWidth <= BigInt(0) || sheetWidthTenths < effectiveWidth) {
+    // Part doesn't fit - return zero layout
+    return {
+      orientation: params.orientation,
+      pieces_per_row: "0",
+      rows: "0", 
+      total_length_mm: "0",
+      rest_width_mm: params.sheetWidth,
+      material_m2: { i: "0", scale: 6 }
+    };
+  }
+  
+  const piecesPerRow = sheetWidthTenths / effectiveWidth;
   
   // Calculate number of rows needed
   const quantityBig = BigInt(params.quantity);

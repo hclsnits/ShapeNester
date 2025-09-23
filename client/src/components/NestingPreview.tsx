@@ -80,6 +80,26 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
     
     const piecesPerRow = parseInt(nestingData.pieces_per_row);
     const rows = parseInt(nestingData.rows);
+    
+    // Check if part doesn't fit on sheet
+    if (piecesPerRow === 0) {
+      return (
+        <div className="bg-muted/30 rounded-lg p-4 h-48 flex flex-col items-center justify-center">
+          <div className="text-xs text-muted-foreground mb-2">
+            Sheet width: {material?.doekbreedte_mm}mm
+          </div>
+          <div className="text-center">
+            <div className="text-red-500 font-medium mb-2">⚠️ Part too large</div>
+            <div className="text-sm text-muted-foreground">
+              Part width exceeds sheet width.
+              <br />
+              Try rotating 90° or reducing dimensions.
+            </div>
+          </div>
+        </div>
+      );
+    }
+    
     const totalPieces = Math.min(quantity, piecesPerRow * rows);
     
     return (
