@@ -49,8 +49,11 @@ export function calculateAdvancedNesting(params: AdvancedNestingParams): Nesting
   const effectiveWidth = partWidth + spacing + kerf;
   const effectiveHeight = partHeight + spacing + kerf;
   
-  // Early exit if part doesn't fit
-  if (effectiveWidth > sheetWidth && effectiveHeight > sheetWidth) {
+  // Quick feasibility check with proper 2D bounds
+  const fitsNormal = effectiveWidth <= sheetWidth && effectiveHeight <= sheetLength;
+  const fitsRotated = params.allowRotation && effectiveHeight <= sheetWidth && effectiveWidth <= sheetLength;
+  
+  if (!fitsNormal && !fitsRotated) {
     return createEmptyResult(params.algorithm, params.sheetWidth);
   }
   
@@ -327,6 +330,16 @@ function generateRandomSolution(
 function evaluateFitness(solution: Rectangle[], sheetWidth: number, sheetLength: number): number {
   if (solution.length === 0) return 0;
   
+  // Penalize overlapping pieces heavily
+  let overlapPenalty = 0;
+  for (let i = 0; i < solution.length; i++) {
+    for (let j = i + 1; j < solution.length; j++) {
+      if (hasRectangleOverlap(solution[i], solution[j])) {
+        overlapPenalty += 10000; // Heavy penalty for overlaps
+      }
+    }
+  }
+  
   // Calculate bounding box of all pieces
   const maxX = Math.max(...solution.map(r => r.x + r.width));
   const maxY = Math.max(...solution.map(r => r.y + r.height));
@@ -334,8 +347,16 @@ function evaluateFitness(solution: Rectangle[], sheetWidth: number, sheetLength:
   const usedArea = solution.reduce((sum, rect) => sum + rect.width * rect.height, 0);
   const boundingArea = maxX * maxY;
   
-  // Fitness = (pieces placed * 1000) + (area efficiency * 500)
-  return solution.length * 1000 + (usedArea / boundingArea) * 500;
+  // Fitness = (pieces placed * 1000) + (area efficiency * 500) - overlap penalty
+  const baseFitness = solution.length * 1000 + (usedArea / boundingArea) * 500;
+  return Math.max(0, baseFitness - overlapPenalty);
+}
+
+function hasRectangleOverlap(rect1: Rectangle, rect2: Rectangle): boolean {
+  return rect1.x < rect2.x + rect2.width &&
+         rect1.x + rect1.width > rect2.x &&
+         rect1.y < rect2.y + rect2.height &&
+         rect1.y + rect1.height > rect2.y;
 }
 
 function selectBest(population: Rectangle[][], fitness: number[], count: number): Rectangle[][] {
@@ -457,9 +478,19 @@ function convertSimpleToAdvanced(pieces: Rectangle[], algorithm: string): Nestin
     };
   }
   
+  const maxX = Math.max(...pieces.map(p => p.x + p.width));
   const maxY = Math.max(...pieces.map(p => p.y + p.height));
   const rows = Math.max(...pieces.map(p => Math.floor(p.y / pieces[0].height))) + 1;
   const piecesPerRow = Math.max(...pieces.map(p => Math.floor(p.x / pieces[0].width))) + 1;
+  
+  const usedArea = pieces.reduce((sum, p) => sum + p.width * p.height, 0);
+  const boundingArea = maxX * maxY;
+  const efficiency = Math.min(100, Math.round((usedArea / boundingArea) * 100));
+  
+  // Estimate sheet width from first piece layout
+  const estimatedSheetWidth = Math.max(...pieces.map(p => p.x + p.width)) || 1500;
+  const materialMm2 = estimatedSheetWidth * maxY;
+  const materialM2 = mmToM2(materialMm2.toString());
   
   return {
     algorithm_used: algorithm,
@@ -467,9 +498,9 @@ function convertSimpleToAdvanced(pieces: Rectangle[], algorithm: string): Nestin
     pieces_per_row: piecesPerRow.toString(),
     rows: rows.toString(),
     total_length_mm: maxY.toString(),
-    rest_width_mm: "0",
-    material_m2: { i: "0", scale: 6 }, // Calculate properly in production
-    efficiency_percent: "85", // Estimate for simple grid
+    rest_width_mm: Math.max(0, estimatedSheetWidth - maxX).toString(),
+    material_m2: materialM2,
+    efficiency_percent: efficiency.toString(),
     pieces_placed: pieces
   };
 }
@@ -493,7 +524,7 @@ function createAdvancedResult(
   
   const usedArea = pieces.reduce((sum, p) => sum + p.width * p.height, 0);
   const boundingArea = maxX * maxY;
-  const efficiency = Math.round((usedArea / boundingArea) * 100);
+  const efficiency = Math.min(100, Math.round((usedArea / boundingArea) * 100));
   
   const materialMm2 = sheetWidth * maxY;
   const materialM2 = mmToM2(materialMm2.toString());

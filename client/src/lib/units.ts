@@ -2,7 +2,10 @@ import { DecScaled } from '@/types';
 
 export function mmToM2(mm2: string): DecScaled {
   // Convert mm² to m² by dividing by 1,000,000
-  const mm2BigInt = BigInt(mm2);
+  // Handle decimal inputs by rounding to nearest integer
+  const mm2Value = parseFloat(mm2);
+  const mm2Rounded = Math.round(mm2Value);
+  const mm2BigInt = BigInt(mm2Rounded);
   return {
     i: mm2BigInt.toString(),
     scale: 6 // 6 decimal places to represent division by 1,000,000
