@@ -1,7 +1,7 @@
 import { ShapeKind } from '@/types';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Square, Circle, Triangle, Hexagon, Minus, Ellipsis } from 'lucide-react';
+import { Square, Circle, Triangle, Hexagon, CircleDot, RectangleHorizontal } from 'lucide-react';
 
 interface ShapeSelectorProps {
   selectedShape: ShapeKind;
@@ -13,8 +13,8 @@ const shapeOptions: { value: ShapeKind; label: string; icon: any }[] = [
   { value: 'circle', label: 'Circle', icon: Circle },
   { value: 'triangle', label: 'Triangle', icon: Triangle },
   { value: 'hexagon_flat', label: 'Hexagon', icon: Hexagon },
-  { value: 'ring', label: 'Ring', icon: Minus },
-  { value: 'oval', label: 'Oval', icon: Ellipsis },
+  { value: 'ring', label: 'Ring', icon: CircleDot },
+  { value: 'oval', label: 'Oval', icon: RectangleHorizontal },
 ];
 
 export function ShapeSelector({ selectedShape, onShapeSelect }: ShapeSelectorProps) {
