@@ -12,19 +12,25 @@ interface PortfolioFiltersProps {
 }
 
 export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: PortfolioFiltersProps) {
-  const [typeFilter, setTypeFilter] = useState<string>('');
+  const [densiteitFilter, setDensiteitFilter] = useState<string>('');
+  const [dikteFilter, setDikteFilter] = useState<string>('');
   const [colorFilter, setColorFilter] = useState<string>('');
 
   const filteredMaterials = useMemo(() => {
     return materials.filter(material => {
-      const typeMatch = !typeFilter || typeFilter === '__all__' || material.materiaalsoort.toLowerCase().includes(typeFilter.toLowerCase());
+      const densiteitMatch = !densiteitFilter || densiteitFilter === '__all__' || String(material.densiteit_kg_m3.i) === densiteitFilter;
+      const dikteMatch = !dikteFilter || dikteFilter === '__all__' || String(material.dikte_mm) === dikteFilter;
       const colorMatch = !colorFilter || colorFilter === '__all__' || material.kleur.toLowerCase().includes(colorFilter.toLowerCase());
-      return typeMatch && colorMatch;
+      return densiteitMatch && dikteMatch && colorMatch;
     });
-  }, [typeFilter, colorFilter]);
+  }, [densiteitFilter, dikteFilter, colorFilter]);
 
-  const uniqueTypes = useMemo(() => {
-    return Array.from(new Set(materials.map(m => m.materiaalsoort)));
+  const uniqueDensiteits = useMemo(() => {
+    return Array.from(new Set(materials.map(m => String(m.densiteit_kg_m3.i)))).sort((a, b) => Number(a) - Number(b));
+  }, []);
+
+  const uniqueDiktes = useMemo(() => {
+    return Array.from(new Set(materials.map(m => String(m.dikte_mm)))).sort((a, b) => Number(a) - Number(b));
   }, []);
 
   const uniqueColors = useMemo(() => {
@@ -35,30 +41,45 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
     <div className="space-y-4" data-testid="portfolio-filters">
       <h2 className="text-lg font-semibold text-foreground">Material Selection</h2>
       
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <div>
-          <Label className="text-sm font-medium">Material Type</Label>
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger data-testid="select-material-type">
-              <SelectValue placeholder="All Types" />
+          <Label className="text-sm font-medium">Densiteit</Label>
+          <Select value={densiteitFilter} onValueChange={setDensiteitFilter}>
+            <SelectTrigger data-testid="select-densiteit">
+              <SelectValue placeholder="Alle" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All Types</SelectItem>
-              {uniqueTypes.map(type => (
-                <SelectItem key={type} value={type}>{type}</SelectItem>
+              <SelectItem value="__all__">Alle</SelectItem>
+              {uniqueDensiteits.map(densiteit => (
+                <SelectItem key={densiteit} value={densiteit}>{densiteit} kg/m³</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         
         <div>
-          <Label className="text-sm font-medium">Color</Label>
-          <Select value={colorFilter} onValueChange={setColorFilter}>
-            <SelectTrigger data-testid="select-color">
-              <SelectValue placeholder="All Colors" />
+          <Label className="text-sm font-medium">Dikte</Label>
+          <Select value={dikteFilter} onValueChange={setDikteFilter}>
+            <SelectTrigger data-testid="select-dikte">
+              <SelectValue placeholder="Alle" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All Colors</SelectItem>
+              <SelectItem value="__all__">Alle</SelectItem>
+              {uniqueDiktes.map(dikte => (
+                <SelectItem key={dikte} value={dikte}>{dikte}mm</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label className="text-sm font-medium">Kleur</Label>
+          <Select value={colorFilter} onValueChange={setColorFilter}>
+            <SelectTrigger data-testid="select-kleur">
+              <SelectValue placeholder="Alle" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">Alle</SelectItem>
               {uniqueColors.map(color => (
                 <SelectItem key={color} value={color}>{color}</SelectItem>
               ))}
