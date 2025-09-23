@@ -17,8 +17,8 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
 
   const filteredMaterials = useMemo(() => {
     return materials.filter(material => {
-      const typeMatch = !typeFilter || material.materiaalsoort.toLowerCase().includes(typeFilter.toLowerCase());
-      const colorMatch = !colorFilter || material.kleur.toLowerCase().includes(colorFilter.toLowerCase());
+      const typeMatch = !typeFilter || typeFilter === '__all__' || material.materiaalsoort.toLowerCase().includes(typeFilter.toLowerCase());
+      const colorMatch = !colorFilter || colorFilter === '__all__' || material.kleur.toLowerCase().includes(colorFilter.toLowerCase());
       return typeMatch && colorMatch;
     });
   }, [typeFilter, colorFilter]);
@@ -43,7 +43,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
               <SelectValue placeholder="All Types" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Types</SelectItem>
+              <SelectItem value="__all__">All Types</SelectItem>
               {uniqueTypes.map(type => (
                 <SelectItem key={type} value={type}>{type}</SelectItem>
               ))}
@@ -58,7 +58,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
               <SelectValue placeholder="All Colors" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Colors</SelectItem>
+              <SelectItem value="__all__">All Colors</SelectItem>
               {uniqueColors.map(color => (
                 <SelectItem key={color} value={color}>{color}</SelectItem>
               ))}
