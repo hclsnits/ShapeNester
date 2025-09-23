@@ -17,6 +17,18 @@ export interface CostingParams {
 export function calculateCosting(params: CostingParams): CostBreakdown {
   const baseMaterialM2 = params.nesting.material_m2;
   
+  // Check if nesting is impossible (pieces_per_row = "0")
+  if (params.nesting.pieces_per_row === "0" || decScaledToNumber(baseMaterialM2) === 0) {
+    return {
+      base_m2: { i: "0", scale: 6 },
+      material_cost_cents: "0",
+      work_cost_cents: "0", 
+      options_cost_cents: "0",
+      kot_cents: "0",
+      total_cents: "0"
+    };
+  }
+  
   // Material cost
   const materialCostEuros = decScaledToNumber(baseMaterialM2) * params.pricePerM2;
   const materialCostCents = toCents(materialCostEuros);

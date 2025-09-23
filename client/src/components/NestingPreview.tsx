@@ -18,7 +18,31 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
   const [kerf, setKerf] = useState(1.5);
   const [orientation, setOrientation] = useState<0 | 90>(0);
 
-  const hasValidDims = Object.values(dims).some(v => v && parseInt(v) > 0);
+  const hasValidDims = (() => {
+    switch (shape) {
+      case 'rectangle':
+        return dims.width && dims.height && parseInt(dims.width) > 0 && parseInt(dims.height) > 0;
+      case 'circle':
+        return dims.diameter && parseInt(dims.diameter) > 0;
+      case 'triangle':
+        return dims.side_a && dims.side_b && dims.side_c && 
+               parseInt(dims.side_a) > 0 && parseInt(dims.side_b) > 0 && parseInt(dims.side_c) > 0;
+      case 'hexagon_flat':
+        return dims.flat_to_flat && parseInt(dims.flat_to_flat) > 0;
+      case 'ring':
+        return dims.outer_diameter && dims.inner_diameter && 
+               parseInt(dims.outer_diameter) > 0 && parseInt(dims.inner_diameter) > 0;
+      case 'oval':
+        return dims.major_axis && dims.minor_axis && 
+               parseInt(dims.major_axis) > 0 && parseInt(dims.minor_axis) > 0;
+      case 'oval_ring':
+        return dims.outer_major && dims.outer_minor && dims.inner_major && dims.inner_minor &&
+               parseInt(dims.outer_major) > 0 && parseInt(dims.outer_minor) > 0 && 
+               parseInt(dims.inner_major) > 0 && parseInt(dims.inner_minor) > 0;
+      default:
+        return false;
+    }
+  })();
   
   const nestingData = useMemo(() => {
     if (!material || !hasValidDims) return null;
@@ -39,11 +63,21 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
   const renderShapeOutline = () => {
     if (!bbox) return null;
     
-    const width = Math.min(parseInt(bbox.width), 100);
-    const height = Math.min(parseInt(bbox.height), 60);
-    const scale = Math.min(100 / parseInt(bbox.width), 60 / parseInt(bbox.height));
-    const scaledWidth = parseInt(bbox.width) * scale;
-    const scaledHeight = parseInt(bbox.height) * scale;
+    const bboxWidth = parseInt(bbox.width);
+    const bboxHeight = parseInt(bbox.height);
+    
+    // Guard against invalid dimensions
+    if (!Number.isFinite(bboxWidth) || !Number.isFinite(bboxHeight) || bboxWidth <= 0 || bboxHeight <= 0) {
+      return (
+        <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">
+          Invalid dimensions
+        </div>
+      );
+    }
+    
+    const scale = Math.min(100 / bboxWidth, 60 / bboxHeight);
+    const scaledWidth = bboxWidth * scale;
+    const scaledHeight = bboxHeight * scale;
 
     return (
       <svg 
