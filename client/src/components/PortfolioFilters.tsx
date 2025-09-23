@@ -1,21 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Material } from '@/types';
-import { loadMaterialPortfolio } from '@/lib/excel-parser';
+import { PortfolioRow, loadMaterialPortfolio, ParsedPortfolioData } from '@/lib/portfolio-parser';
 import { formatCentsEUR } from '@/lib/money';
-
-interface ParsedPortfolioData {
-  materials: Material[];
-  densiteits: string[];
-  diktes: string[];
-  colors: string[];
-}
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
 interface PortfolioFiltersProps {
-  selectedMaterial: Material | null;
-  onMaterialSelect: (material: Material | null) => void;
+  selectedMaterial: PortfolioRow | null;
+  onMaterialSelect: (material: PortfolioRow | null) => void;
 }
 
 export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: PortfolioFiltersProps) {
@@ -45,25 +37,66 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
   const filteredMaterials = useMemo(() => {
     if (!portfolioData) return [];
     
-    return portfolioData.materials.filter((material: Material) => {
-      const densiteitMatch = !densiteitFilter || densiteitFilter === '__all__' || String(material.densiteit_kg_m3.i) === densiteitFilter;
+    return portfolioData.materials.filter((material: PortfolioRow) => {
+      const densiteitMatch = !densiteitFilter || densiteitFilter === '__all__' || String(material.densiteit_raw) === densiteitFilter;
       const dikteMatch = !dikteFilter || dikteFilter === '__all__' || String(material.dikte_mm) === dikteFilter;
-      const colorMatch = !colorFilter || colorFilter === '__all__' || material.kleur.toLowerCase().includes(colorFilter.toLowerCase());
+      const colorMatch = !colorFilter || colorFilter === '__all__' || material.kleur === colorFilter;
       return densiteitMatch && dikteMatch && colorMatch;
     });
   }, [portfolioData, densiteitFilter, dikteFilter, colorFilter]);
 
-  const uniqueDensiteits = useMemo(() => {
+  // Cascading filter options based on current selections
+  const availableDensiteits = useMemo(() => {
     return portfolioData?.densiteits || [];
   }, [portfolioData]);
 
-  const uniqueDiktes = useMemo(() => {
-    return portfolioData?.diktes || [];
-  }, [portfolioData]);
+  const availableDiktes = useMemo(() => {
+    if (!portfolioData) return [];
+    
+    // If density is selected, only show thicknesses for that density
+    if (densiteitFilter && densiteitFilter !== '__all__') {
+      const validMaterials = portfolioData.materials.filter((material: PortfolioRow) => 
+        String(material.densiteit_raw) === densiteitFilter
+      );
+      const diktes = new Set<string>();
+      validMaterials.forEach(material => {
+        if (material.dikte_mm != null) {
+          diktes.add(String(material.dikte_mm));
+        }
+      });
+      return Array.from(diktes).sort((a, b) => Number(a) - Number(b));
+    }
+    
+    return portfolioData.diktes;
+  }, [portfolioData, densiteitFilter]);
 
-  const uniqueColors = useMemo(() => {
-    return portfolioData?.colors || [];
-  }, [portfolioData]);
+  const availableColors = useMemo(() => {
+    if (!portfolioData) return [];
+    
+    // Filter colors based on selected density and thickness
+    let validMaterials = portfolioData.materials;
+    
+    if (densiteitFilter && densiteitFilter !== '__all__') {
+      validMaterials = validMaterials.filter((material: PortfolioRow) => 
+        String(material.densiteit_raw) === densiteitFilter
+      );
+    }
+    
+    if (dikteFilter && dikteFilter !== '__all__') {
+      validMaterials = validMaterials.filter((material: PortfolioRow) => 
+        String(material.dikte_mm) === dikteFilter
+      );
+    }
+    
+    const colors = new Set<string>();
+    validMaterials.forEach(material => {
+      if (material.kleur) {
+        colors.add(material.kleur);
+      }
+    });
+    
+    return Array.from(colors).sort();
+  }, [portfolioData, densiteitFilter, dikteFilter]);
 
   // Show loading state
   if (isLoading) {
@@ -108,9 +141,13 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Alle</SelectItem>
-              {uniqueDensiteits.map((densiteit: string) => (
-                <SelectItem key={densiteit} value={densiteit}>{densiteit} kg/m³</SelectItem>
-              ))}
+              {availableDensiteits.map((densiteit: string) => {
+                const numericValue = parseFloat(densiteit);
+                const displayValue = !isNaN(numericValue) ? `${densiteit} g/cm³` : densiteit;
+                return (
+                  <SelectItem key={densiteit} value={densiteit}>{displayValue}</SelectItem>
+                );
+              })}
             </SelectContent>
           </Select>
         </div>
@@ -123,7 +160,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Alle</SelectItem>
-              {uniqueDiktes.map((dikte: string) => (
+              {availableDiktes.map((dikte: string) => (
                 <SelectItem key={dikte} value={dikte}>{dikte}mm</SelectItem>
               ))}
             </SelectContent>
@@ -138,7 +175,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">Alle</SelectItem>
-              {uniqueColors.map((color: string) => (
+              {availableColors.map((color: string) => (
                 <SelectItem key={color} value={color}>{color}</SelectItem>
               ))}
             </SelectContent>
@@ -162,50 +199,60 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
             </tr>
           </thead>
           <tbody>
-            {filteredMaterials.map((material: Material) => (
-              <tr
-                key={material.artikelcode}
-                className={`border-b border-border hover:bg-muted/50 cursor-pointer ${
-                  selectedMaterial?.artikelcode === material.artikelcode ? 'bg-accent/50' : ''
-                }`}
-                onClick={() => onMaterialSelect(material)}
-                data-testid={`row-material-${material.artikelcode}`}
-              >
-                <td className="p-4 align-middle">
-                  <RadioGroup
-                    value={selectedMaterial?.artikelcode || ''}
-                    onValueChange={(value) => {
-                      const mat = portfolioData?.materials.find((m: Material) => m.artikelcode === value);
-                      onMaterialSelect(mat || null);
-                    }}
-                  >
-                    <RadioGroupItem 
-                      value={material.artikelcode}
-                      data-testid={`radio-material-${material.artikelcode}`}
-                    />
-                  </RadioGroup>
-                </td>
-                <td className="p-4 align-middle">
-                  <div>
-                    <div className="font-medium text-foreground">
-                      {material.artikelcode}
+            {filteredMaterials.map((material: PortfolioRow) => {
+              if (!material.artikelcode) return null;
+              
+              const densityDisplay = () => {
+                if (material.densiteit_raw == null) return 'N/A';
+                const numericValue = parseFloat(String(material.densiteit_raw));
+                return !isNaN(numericValue) ? `${material.densiteit_raw} g/cm³` : String(material.densiteit_raw);
+              };
+              
+              return (
+                <tr
+                  key={material.artikelcode}
+                  className={`border-b border-border hover:bg-muted/50 cursor-pointer ${
+                    selectedMaterial?.artikelcode === material.artikelcode ? 'bg-accent/50' : ''
+                  }`}
+                  onClick={() => onMaterialSelect(material)}
+                  data-testid={`row-material-${material.artikelcode}`}
+                >
+                  <td className="p-4 align-middle">
+                    <RadioGroup
+                      value={selectedMaterial?.artikelcode || ''}
+                      onValueChange={(value) => {
+                        const mat = portfolioData?.materials.find((m: PortfolioRow) => m.artikelcode === value);
+                        onMaterialSelect(mat || null);
+                      }}
+                    >
+                      <RadioGroupItem 
+                        value={material.artikelcode}
+                        data-testid={`radio-material-${material.artikelcode}`}
+                      />
+                    </RadioGroup>
+                  </td>
+                  <td className="p-4 align-middle">
+                    <div>
+                      <div className="font-medium text-foreground">
+                        {material.artikelcode}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {material.materiaalsoort}, {material.kleur}, {material.dikte_mm}mm
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {material.doekbreedte_mm}mm width, {densityDisplay()}
+                      </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {material.materiaalsoort}, {material.kleur}, {material.dikte_mm}mm
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {material.doekbreedte_mm}mm width, {material.densiteit_kg_m3.i} kg/m³
-                    </div>
-                  </div>
-                </td>
-                <td className="p-4 align-middle">
-                  <span className="font-medium text-foreground">
-                    {formatCentsEUR(BigInt(material.prijs_per_m2_cents))}
-                  </span>
-                  <div className="text-xs text-muted-foreground">per m²</div>
-                </td>
-              </tr>
-            ))}
+                  </td>
+                  <td className="p-4 align-middle">
+                    <span className="font-medium text-foreground">
+                      {material.prijs_per_m2_cents ? formatCentsEUR(BigInt(material.prijs_per_m2_cents)) : 'N/A'}
+                    </span>
+                    <div className="text-xs text-muted-foreground">per m²</div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

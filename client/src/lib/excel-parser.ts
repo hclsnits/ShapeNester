@@ -60,7 +60,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ParsedPortfolioData {
   const fieldMapping = {
     'artikelcode': ['artikelcode', 'article_code', 'code', 'artikel'],
     'materiaalsoort': ['materiaalsoort', 'material_type', 'material', 'type'],
-    'densiteit_kg_m3': ['densiteit', 'density', 'densiteit_kg_m3', 'kg/m3'],
+    'densiteit_g_cm3': ['densiteit', 'density', 'densiteit_kg_m3', 'kg/m3', 'g/cm3', 'densiteit_g_cm3'],
     'dikte_mm': ['dikte', 'thickness', 'dikte_mm', 'mm'],
     'doekbreedte_mm': ['doekbreedte', 'width', 'doekbreedte_mm', 'breedte'],
     'kleur': ['kleur', 'color', 'colour'],
@@ -83,7 +83,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ParsedPortfolioData {
   });
   
   // Validate required columns exist
-  const requiredFields = ['artikelcode', 'materiaalsoort', 'densiteit_kg_m3', 'dikte_mm', 'kleur', 'prijs_per_m2_cents'];
+  const requiredFields = ['artikelcode', 'materiaalsoort', 'densiteit_g_cm3', 'dikte_mm', 'kleur', 'prijs_per_m2_cents'];
   const missingFields = requiredFields.filter(field => !(field in columnMapping));
   
   if (missingFields.length > 0) {
@@ -103,7 +103,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ParsedPortfolioData {
       
       const artikelcode = String(row[columnMapping.artikelcode] || '').trim();
       const materiaalsoort = String(row[columnMapping.materiaalsoort] || '').trim();
-      const densiteitValue = row[columnMapping.densiteit_kg_m3];
+      const densiteitValue = row[columnMapping.densiteit_g_cm3];
       const dikteValue = row[columnMapping.dikte_mm];
       const kleur = String(row[columnMapping.kleur] || '').trim();
       const prijsValue = row[columnMapping.prijs_per_m2_cents];
@@ -135,7 +135,7 @@ export function parseExcelFile(buffer: ArrayBuffer): ParsedPortfolioData {
       const material: Material = {
         artikelcode,
         materiaalsoort,
-        densiteit_kg_m3: { i: String(Math.round(densiteit)), scale: 0 },
+        densiteit_g_cm3: { i: String(Math.round(densiteit * 100) / 100), scale: 0 },
         dikte_mm: String(Math.round(dikte)),
         doekbreedte_mm: String(Math.round(parseFloat(doekbreedte))),
         kleur,

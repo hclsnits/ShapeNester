@@ -8,6 +8,8 @@ import { CostingPanel } from '@/components/CostingPanel';
 import { CartDrawer } from '@/components/CartDrawer';
 import { ShippingPanel } from '@/components/ShippingPanel';
 import { Material, ShapeKind, ShapeDims as ShapeDimsType, CartItem } from '@/types';
+import { PortfolioRow } from '@/lib/portfolio-parser';
+import { portfolioRowToMaterial, materialToPortfolioRow } from '@/lib/material-converter';
 import { loadCart, addToCart } from '@/lib/cartStorage';
 import { exportCartToPDF } from '@/lib/pdf';
 import { exportCartToXLSX } from '@/lib/xlsx';

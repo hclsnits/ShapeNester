@@ -8,7 +8,7 @@ export type DecScaled = {
 export type Material = {
   artikelcode: string;
   materiaalsoort: string;
-  densiteit_kg_m3: DecScaled;
+  densiteit_g_cm3: DecScaled;
   dikte_mm: string;
   doekbreedte_mm: string;
   kleur: string;
