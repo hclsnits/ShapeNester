@@ -28,7 +28,6 @@ export function CostingPanel({ material, shape, dims, options, onAddToCart }: Co
   const [quantity, setQuantity] = useState(20);
   const [spacing, setSpacing] = useState(5);
   const [kerf, setKerf] = useState(1.5);
-  const [orientation, setOrientation] = useState<0 | 90>(0);
   
   const { toast } = useToast();
 
@@ -44,8 +43,8 @@ export function CostingPanel({ material, shape, dims, options, onAddToCart }: Co
       quantity,
       sheetWidth: material.doekbreedte_mm,
       spacing: spacing.toString(),
-      kerf: kerf.toString(),
-      orientation
+      kerf: kerf.toString()
+      // No orientation parameter - will auto-optimize
     });
 
     const perimeter = calculatePerimeter(shape, dims);
@@ -69,7 +68,7 @@ export function CostingPanel({ material, shape, dims, options, onAddToCart }: Co
     });
 
     return { nesting, costing, perimeter };
-  }, [canCalculate, material, shape, dims, quantity, spacing, kerf, orientation, hourlyRate, cuttingSpeed, kotFee, options]);
+  }, [canCalculate, material, shape, dims, quantity, spacing, kerf, hourlyRate, cuttingSpeed, kotFee, options]);
 
   const handleAddToCart = () => {
     if (!canCalculate || !calculations) {
@@ -162,6 +161,12 @@ export function CostingPanel({ material, shape, dims, options, onAddToCart }: Co
         
         {calculations ? (
           <div className="space-y-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Optimized Orientation:</span>
+              <span className="font-medium text-foreground" data-testid="text-orientation">
+                {calculations.nesting.orientation === 0 ? '0°' : '90°'}
+              </span>
+            </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Material Cost:</span>
               <span className="font-medium text-foreground" data-testid="text-material-cost">

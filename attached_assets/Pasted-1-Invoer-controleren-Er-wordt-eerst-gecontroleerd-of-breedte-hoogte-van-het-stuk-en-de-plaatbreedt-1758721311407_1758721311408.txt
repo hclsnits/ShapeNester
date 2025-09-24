@@ -1,0 +1,34 @@
+1.	Invoer controleren
+Er wordt eerst gecontroleerd of breedte/hoogte van het stuk en de plaatbreedte groter dan 0 zijn, en of het aantal stuks > 0 is. Anders stopt de berekening met een fout.
+2.	Eén “extra rand” (pad) bepalen
+De spacing en de kerf worden bij elkaar opgeteld, maar negatieve waarden tellen niet mee (worden 0). Dat totaal noemen we pad. Dit pad wordt één keer per stuk meegerekend in de breedte én één keer in de lengte.
+3.	Twee oriëntaties doorrekenen (0° en 90°)
+•	0°: effectieve breedte = bbox_w + pad, effectieve lengte per rij (voerrichting) = bbox_h + pad.
+•	90°: dezelfde waarden maar dan omgewisseld.
+Zo krijg je per oriëntatie wat één stuk “kost” in breedte en in lengte.
+4.	Per oriëntatie een lay-out uitrekenen
+Voor beide oriëntaties wordt dezelfde formule gebruikt:
+•	pieces_per_row (ppr) = vloer( sheet_width / w_eff ). Als dit < 1, past er geen enkel stuk in de breedte → die oriëntatie valt af.
+•	rows (aantal rijen) = ceiling( amount / ppr ) → in de code als (A + ppr - 1) / ppr.
+•	total_length = rows * h_eff → totale snijlengte in de voerrichting die je nodig hebt.
+•	rest_width = sheet_width - ppr * w_eff → de overgebleven ongebruikte strook in de breedte.
+5.	De beste oriëntatie kiezen
+•	Eerst wint de oriëntatie met de meeste stuks per rij (ppr).
+•	Als dat gelijk is, wint degene met de kleinste snijlengte per rij (cut_length = h_eff).
+Er wordt dus vooral gemaximaliseerd op “hoeveel past er naast elkaar”, en bij gelijkspel minimaliseer je de lengte.
+6.	Resultaten rapporteren
+Voor de gekozen oriëntatie worden teruggegeven:
+•	orientation (0° of 90°)
+•	pieces_per_row en rows
+•	cut_width_mm (= effectieve breedte w_eff, ook wel snijbreedte_mm)
+•	cut_length_mm (= effectieve lengte h_eff, ook wel snijlengte_mm)
+•	total_length_mm (= totale benodigde lengte in de voerrichting)
+•	rest_width_mm (overgebleven breedte)
+•	material_m2: berekend als (sheet_width * total_length) / 1e6, opgeslagen als decimaal met schaal 6.
+
+Mini-voorbeeld (ter illustratie)
+Stel: bbox_w=100, bbox_h=50, sheet_width=520, amount=17, spacing=3, kerf=2 → pad=5.
+•	0°: w_eff=105, h_eff=55 → ppr=floor(520/105)=4, rows=ceil(17/4)=5, total_length=5*55=275, rest=520-4*105=100.
+•	90°: w_eff=55, h_eff=105 → ppr=floor(520/55)=9, rows=ceil(17/9)=2, total_length=2*105=210, rest=520-9*55=25.
+De 90°-oriëntatie wint (meer stuks per rij), en je krijgt de corresponderende waarden terug.
+Kort samengevat: we tellen spacing+kerf als één vaste marge per stuk, rekenen beide rotaties door, nemen de rotatie met de meeste stuks naast elkaar (bij gelijkspel de kortste), en leiden daaruit rijen, totale lengte, restbreedte en materiaalverbruik (in m²) af.

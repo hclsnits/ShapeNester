@@ -18,7 +18,6 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
   const [quantity, setQuantity] = useState(20);
   const [spacing, setSpacing] = useState(5);
   const [kerf, setKerf] = useState(1.5);
-  const [orientation, setOrientation] = useState<0 | 90>(0);
   const [algorithm, setAlgorithm] = useState<'simple' | 'bottom_left_fill' | 'best_fit' | 'genetic'>('simple');
   const [useAdvanced, setUseAdvanced] = useState(false);
   const [allowRotation, setAllowRotation] = useState(true);
@@ -72,11 +71,11 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
         quantity,
         sheetWidth: material.doekbreedte_mm,
         spacing: spacing.toString(),
-        kerf: kerf.toString(),
-        orientation
+        kerf: kerf.toString()
+        // No orientation parameter - will auto-optimize
       });
     }
-  }, [shape, dims, material, quantity, spacing, kerf, orientation, useAdvanced, algorithm, allowRotation, sheetLength, hasValidDims]);
+  }, [shape, dims, material, quantity, spacing, kerf, useAdvanced, algorithm, allowRotation, sheetLength, hasValidDims]);
 
   const bbox = hasValidDims ? calculateBoundingBox(shape, dims) : null;
 
@@ -146,9 +145,9 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
           <div className="text-center">
             <div className="text-red-500 font-medium mb-2">⚠️ Part too large</div>
             <div className="text-sm text-muted-foreground">
-              Part width exceeds sheet width.
+              Part dimensions exceed sheet width in both orientations.
               <br />
-              Try rotating 90° or reducing dimensions.
+              Try reducing dimensions or selecting wider material.
             </div>
           </div>
         </div>
@@ -277,19 +276,10 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
             </div>
             {!useAdvanced ? (
               <div>
-                <Label className="text-sm font-medium mb-2 block">Orientation</Label>
-                <Select 
-                  value={orientation.toString()} 
-                  onValueChange={(value) => setOrientation(value === '90' ? 90 : 0)}
-                >
-                  <SelectTrigger data-testid="select-orientation">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">0° (Normal)</SelectItem>
-                    <SelectItem value="90">90° (Rotated)</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label className="text-sm font-medium mb-2 block">Optimized Orientation</Label>
+                <div className="h-10 px-3 py-2 bg-muted rounded-md flex items-center text-sm" data-testid="optimized-orientation">
+                  {nestingData ? `${nestingData.orientation === 0 ? '0°' : '90°'} (Automatic)` : 'Auto-selected'}
+                </div>
               </div>
             ) : (
               <div>
