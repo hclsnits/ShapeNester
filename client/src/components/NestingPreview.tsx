@@ -276,9 +276,9 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
             </div>
             {!useAdvanced ? (
               <div>
-                <Label className="text-sm font-medium mb-2 block">Optimized Orientation</Label>
+                <Label className="text-sm font-medium mb-2 block">Orientation</Label>
                 <div className="h-10 px-3 py-2 bg-muted rounded-md flex items-center text-sm" data-testid="optimized-orientation">
-                  {nestingData ? `${nestingData.orientation === 0 ? '0°' : '90°'} (Automatic)` : 'Auto-selected'}
+                  {nestingData ? `${nestingData.orientation === 0 ? '0°' : '90°'}` : 'Auto-selected'}
                 </div>
               </div>
             ) : (
