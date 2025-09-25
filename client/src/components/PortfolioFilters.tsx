@@ -112,7 +112,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
   if (isLoading) {
     return (
       <div className="space-y-4" data-testid="portfolio-filters">
-        <h2 className="text-lg font-semibold text-foreground">Material Selection</h2>
+        <h2 className="text-lg font-semibold text-foreground">Step 1 — Material selection</h2>
         <div className="text-center py-8">
           <div className="text-muted-foreground">Loading portfolio data...</div>
         </div>
@@ -124,7 +124,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
   if (error) {
     return (
       <div className="space-y-4" data-testid="portfolio-filters">
-        <h2 className="text-lg font-semibold text-foreground">Material Selection</h2>
+        <h2 className="text-lg font-semibold text-foreground">Step 1 — Material selection</h2>
         <div className="text-center py-8">
           <div className="text-destructive">{error}</div>
           <button 
@@ -141,7 +141,7 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
   return (
     <div className="space-y-6" data-testid="portfolio-filters">
       <div>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Step 1 — Select material type</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Step 1 — Material selection</h2>
         
         <div className="space-y-4">
           <div>
