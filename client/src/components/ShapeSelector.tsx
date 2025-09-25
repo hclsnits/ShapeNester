@@ -36,7 +36,7 @@ const shapeOptions: { value: ShapeKind; label: string; icon: any }[] = [
 export function ShapeSelector({ selectedShape, onShapeSelect }: ShapeSelectorProps) {
   return (
     <div className="space-y-4" data-testid="shape-selector">
-      <h2 className="text-lg font-semibold text-foreground">Shape Selection</h2>
+      <h2 className="text-lg font-semibold text-foreground">Step 2 — Shape selection</h2>
       
       <RadioGroup
         value={selectedShape}

@@ -46,7 +46,7 @@ export function Options({ selectedOptions, onOptionsChange }: OptionsProps) {
   return (
     <div className="space-y-4" data-testid="options">
       <h2 className="text-lg font-semibold text-foreground">
-        Additional Options
+        Step 4 — Additional options
       </h2>
 
       <div className="space-y-3">

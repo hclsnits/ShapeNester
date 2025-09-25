@@ -215,7 +215,7 @@ export function ShapeDims({ shape, dims, onDimsChange }: ShapeDimsProps) {
 
   return (
     <div className="space-y-4" data-testid="shape-dims">
-      <h2 className="text-lg font-semibold text-foreground">Dimensions</h2>
+      <h2 className="text-lg font-semibold text-foreground">Step 3 — Shape dimensions</h2>
       
       <div className="grid grid-cols-2 gap-4">
         {renderDimensionFields()}
