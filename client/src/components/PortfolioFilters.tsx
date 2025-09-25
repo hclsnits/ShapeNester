@@ -4,6 +4,7 @@ import { formatCentsEUR } from '@/lib/money';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import PortfolioSummary from '@/components/PortfolioSummary';
 
 interface PortfolioFiltersProps {
   selectedMaterial: PortfolioRow | null;
@@ -98,6 +99,15 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
     return Array.from(colors).sort();
   }, [portfolioData, densiteitFilter, dikteFilter]);
 
+  // Auto-select material when filters result in exactly one match
+  useEffect(() => {
+    if (filteredMaterials.length === 1) {
+      onMaterialSelect(filteredMaterials[0]);
+    } else if (filteredMaterials.length === 0 && selectedMaterial) {
+      onMaterialSelect(null);
+    }
+  }, [filteredMaterials, onMaterialSelect, selectedMaterial]);
+
   // Show loading state
   if (isLoading) {
     return (
@@ -129,132 +139,69 @@ export function PortfolioFilters({ selectedMaterial, onMaterialSelect }: Portfol
   }
 
   return (
-    <div className="space-y-4" data-testid="portfolio-filters">
-      <h2 className="text-lg font-semibold text-foreground">Material Selection</h2>
-      
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <Label className="text-sm font-medium">Densiteit</Label>
-          <Select value={densiteitFilter} onValueChange={setDensiteitFilter}>
-            <SelectTrigger data-testid="select-densiteit">
-              <SelectValue placeholder="Alle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Alle</SelectItem>
-              {availableDensiteits.map((densiteit: string) => {
-                const numericValue = parseFloat(densiteit);
-                const displayValue = !isNaN(numericValue) ? `${densiteit} g/cm³` : densiteit;
-                return (
-                  <SelectItem key={densiteit} value={densiteit}>{displayValue}</SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
-        </div>
+    <div className="space-y-6" data-testid="portfolio-filters">
+      <div>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Step 1 — Select material type</h2>
         
-        <div>
-          <Label className="text-sm font-medium">Dikte</Label>
-          <Select value={dikteFilter} onValueChange={setDikteFilter}>
-            <SelectTrigger data-testid="select-dikte">
-              <SelectValue placeholder="Alle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Alle</SelectItem>
-              {availableDiktes.map((dikte: string) => (
-                <SelectItem key={dikte} value={dikte}>{dikte}mm</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-4">
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Density (g/cm³)</Label>
+            <Select value={densiteitFilter} onValueChange={setDensiteitFilter}>
+              <SelectTrigger data-testid="select-densiteit">
+                <SelectValue placeholder="Select density" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDensiteits.map((densiteit: string) => {
+                  const numericValue = parseFloat(densiteit);
+                  const displayValue = !isNaN(numericValue) ? `${densiteit}` : densiteit;
+                  return (
+                    <SelectItem key={densiteit} value={densiteit}>{displayValue}</SelectItem>
+                  );
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Thickness (mm)</Label>
+            <Select value={dikteFilter} onValueChange={setDikteFilter}>
+              <SelectTrigger data-testid="select-dikte">
+                <SelectValue placeholder="Select thickness" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableDiktes.map((dikte: string) => (
+                  <SelectItem key={dikte} value={dikte}>{dikte}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label className="text-sm font-medium mb-2 block">Color</Label>
+            <Select value={colorFilter} onValueChange={setColorFilter}>
+              <SelectTrigger data-testid="select-kleur">
+                <SelectValue placeholder="Select color" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableColors.map((color: string) => (
+                  <SelectItem key={color} value={color}>{color}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
-        <div>
-          <Label className="text-sm font-medium">Kleur</Label>
-          <Select value={colorFilter} onValueChange={setColorFilter}>
-            <SelectTrigger data-testid="select-kleur">
-              <SelectValue placeholder="Alle" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__all__">Alle</SelectItem>
-              {availableColors.map((color: string) => (
-                <SelectItem key={color} value={color}>{color}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+        {filteredMaterials.length === 1 && selectedMaterial && (
+          <div className="mt-4 flex items-center text-sm text-green-600">
+            <svg className="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+            </svg>
+            Exactly 1 article selected
+          </div>
+        )}
       </div>
 
-      <div className="rounded-md border border-border">
-        <table className="w-full">
-          <thead className="border-b border-border bg-muted/50">
-            <tr>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Select
-              </th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Material
-              </th>
-              <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground text-xs uppercase tracking-wide">
-                Price
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredMaterials.map((material: PortfolioRow) => {
-              if (!material.artikelcode) return null;
-              
-              const densityDisplay = () => {
-                if (material.densiteit_g_cm3 == null) return 'N/A';
-                return `${material.densiteit_g_cm3.toFixed(2)} g/cm³`;
-              };
-              
-              return (
-                <tr
-                  key={material.artikelcode}
-                  className={`border-b border-border hover:bg-muted/50 cursor-pointer ${
-                    selectedMaterial?.artikelcode === material.artikelcode ? 'bg-accent/50' : ''
-                  }`}
-                  onClick={() => onMaterialSelect(material)}
-                  data-testid={`row-material-${material.artikelcode}`}
-                >
-                  <td className="p-4 align-middle">
-                    <RadioGroup
-                      value={selectedMaterial?.artikelcode || ''}
-                      onValueChange={(value) => {
-                        const mat = portfolioData?.materials.find((m: PortfolioRow) => m.artikelcode === value);
-                        onMaterialSelect(mat || null);
-                      }}
-                    >
-                      <RadioGroupItem 
-                        value={material.artikelcode}
-                        data-testid={`radio-material-${material.artikelcode}`}
-                      />
-                    </RadioGroup>
-                  </td>
-                  <td className="p-4 align-middle">
-                    <div>
-                      <div className="font-medium text-foreground">
-                        {material.artikelcode}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {material.materiaalsoort}, {material.kleur}, {material.dikte_mm}mm
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {material.doekbreedte_mm}mm width, {densityDisplay()}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-4 align-middle">
-                    <span className="font-medium text-foreground">
-                      {material.prijs_per_m2_cents ? formatCentsEUR(BigInt(material.prijs_per_m2_cents)) : 'N/A'}
-                    </span>
-                    <div className="text-xs text-muted-foreground">per m²</div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <PortfolioSummary row={selectedMaterial} />
     </div>
   );
 }

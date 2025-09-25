@@ -1,5 +1,5 @@
-import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface Option {
   id: string;
@@ -10,23 +10,23 @@ interface Option {
 
 const availableOptions: Option[] = [
   {
-    id: 'deburring',
-    label: 'Edge Deburring',
-    description: 'Smooth all cut edges',
-    price: 2.50
+    id: "self-adhesive",
+    label: "Self-adhesive tape",
+    description: "apply double-sided self-adhesive tape",
+    price: 10.0,
   },
   {
-    id: 'labeling',
-    label: 'Part Labeling',
-    description: 'Label each piece',
-    price: 1.75
+    id: "labeling",
+    label: "Part Labeling",
+    description: "Label each piece",
+    price: 1.75,
   },
   {
-    id: 'quality_control',
-    label: 'Quality Control',
-    description: 'Inspect all pieces',
-    price: 5.00
-  }
+    id: "quality_control",
+    label: "Quality Control",
+    description: "Inspect all pieces",
+    price: 5.0,
+  },
 ];
 
 interface OptionsProps {
@@ -39,16 +39,18 @@ export function Options({ selectedOptions, onOptionsChange }: OptionsProps) {
     if (checked) {
       onOptionsChange([...selectedOptions, optionId]);
     } else {
-      onOptionsChange(selectedOptions.filter(id => id !== optionId));
+      onOptionsChange(selectedOptions.filter((id) => id !== optionId));
     }
   };
 
   return (
     <div className="space-y-4" data-testid="options">
-      <h2 className="text-lg font-semibold text-foreground">Additional Options</h2>
-      
+      <h2 className="text-lg font-semibold text-foreground">
+        Additional Options
+      </h2>
+
       <div className="space-y-3">
-        {availableOptions.map(option => (
+        {availableOptions.map((option) => (
           <Label
             key={option.id}
             className="flex items-center justify-between cursor-pointer"
@@ -59,11 +61,17 @@ export function Options({ selectedOptions, onOptionsChange }: OptionsProps) {
               <Checkbox
                 id={option.id}
                 checked={selectedOptions.includes(option.id)}
-                onCheckedChange={(checked) => handleOptionChange(option.id, !!checked)}
+                onCheckedChange={(checked) =>
+                  handleOptionChange(option.id, !!checked)
+                }
               />
               <div>
-                <div className="text-sm font-medium text-foreground">{option.label}</div>
-                <div className="text-xs text-muted-foreground">{option.description}</div>
+                <div className="text-sm font-medium text-foreground">
+                  {option.label}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  {option.description}
+                </div>
               </div>
             </div>
             <span className="text-sm font-medium text-foreground">
