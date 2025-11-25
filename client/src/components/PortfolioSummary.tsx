@@ -7,7 +7,7 @@ interface PortfolioSummaryProps {
 export function PortfolioSummary({ row }: PortfolioSummaryProps) {
   return (
     <div className="rounded-lg border p-3">
-      <div className="font-medium mb-1">Material specifications</div>
+      <div className="font-medium mb-1">Material datasheet</div>
       {row ? (
         <div className="rounded-md border overflow-visible">
           <table className="w-full text-sm">
