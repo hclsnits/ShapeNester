@@ -121,11 +121,15 @@ export function calculateNesting(params: NestingParams): NestingSummary {
   const bbox = calculateBoundingBox(params.shape, params.dims);
   
   // Convert inputs to BigInt with tenth-mm precision for accuracy
-  const bbox_w_mm = BigInt(bbox.width * 10); // Scale to tenth-mm
-  const bbox_h_mm = BigInt(bbox.height * 10); // Scale to tenth-mm  
-  const sheet_width_mm = BigInt(params.sheetWidth * 10); // Scale to tenth-mm
-  const spacing_mm = BigInt(Math.round(parseFloat(params.spacing) * 10)); // 1.5mm -> 15 tenth-mm
-  const kerf_mm = BigInt(Math.round(parseFloat(params.kerf) * 10)); // 1.5mm -> 15 tenth-mm
+  // bbox.width/height and params.* are string-typed in this codebase.
+  // Safely parse them to numbers, scale to tenth-mm and convert to BigInt.
+  const toTenth = (v: string | number) => BigInt(Math.round(Number(v) * 10));
+
+  const bbox_w_mm = toTenth(bbox.width); // Scale to tenth-mm
+  const bbox_h_mm = toTenth(bbox.height); // Scale to tenth-mm
+  const sheet_width_mm = toTenth(params.sheetWidth); // Scale to tenth-mm
+  const spacing_mm = toTenth(params.spacing); // 1.5mm -> 15 tenth-mm
+  const kerf_mm = toTenth(params.kerf); // 1.5mm -> 15 tenth-mm
   
   try {
     // Use optimized algorithm unless specific orientation is requested
