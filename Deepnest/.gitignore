@@ -1,0 +1,25 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+.DS_Store
+/node_modules
+/build
+/dist
+/bin
+/minkowski
+/deepnest-*win*x64
+git_token.rtf
+.idea
+*.zip
+.python-version
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+/deepnest-v*
+/out
+/.env
+/.env.local
+/output.log
+/_assets/embedded.*

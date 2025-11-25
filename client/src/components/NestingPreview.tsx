@@ -3,9 +3,11 @@ import { ShapeKind, ShapeDims, Material, CartItem } from "@/types";
 import { v4 as uuidv4 } from "uuid";
 import { calculateBoundingBox } from "@/lib/geometry/bbox";
 import { calculateNesting } from "@/lib/nesting";
-import { calculateAdvancedNesting } from "@/lib/advanced-nesting";
+// advanced nesting removed per request
+// import { calculateAdvancedNesting } from "@/lib/advanced-nesting";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -13,7 +15,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
+// advanced nesting switch removed from UI
+// import { Switch } from "@/components/ui/switch";
 
 interface NestingPreviewProps {
   shape: ShapeKind;
@@ -21,19 +24,22 @@ interface NestingPreviewProps {
   material: Material | null;
   options?: string[];
   onAddConfiguredShape?: (item: CartItem) => void;
+  configuredItems?: CartItem[];
 }
 
-export function NestingPreview({ shape, dims, material, options = [], onAddConfiguredShape, }: NestingPreviewProps) {
+export function NestingPreview({ shape, dims, material, options = [], onAddConfiguredShape, configuredItems, }: NestingPreviewProps) {
   const [quantity, setQuantity] = useState(20);
   const [spacing, setSpacing] = useState(5);
   const [kerf, setKerf] = useState(1.5);
-  const [algorithm, setAlgorithm] = useState<
-    "simple" | "bottom_left_fill" | "best_fit" | "genetic"
-  >("simple");
-  const [useAdvanced, setUseAdvanced] = useState(false);
-  const [allowRotation, setAllowRotation] = useState(true);
-  const [sheetLength, setSheetLength] = useState(3000); // Default 3m sheets
+  // advanced nesting state removed from UI; kept here commented for reference
+  // const [algorithm, setAlgorithm] = useState<
+  //   "simple" | "bottom_left_fill" | "best_fit" | "genetic"
+  // >("simple");
+  // const [useAdvanced, setUseAdvanced] = useState(false);
+  // const [allowRotation, setAllowRotation] = useState(true);
+  // const [sheetLength, setSheetLength] = useState(3000); // Default 3m sheets
   const [showNestingConfig, setShowNestingConfig] = useState(false);
+  const [nestedItems, setNestedItems] = useState<CartItem[]>([]);
 
   const hasValidDims = (() => {
     switch (shape) {
@@ -90,42 +96,16 @@ export function NestingPreview({ shape, dims, material, options = [], onAddConfi
   const nestingData = useMemo(() => {
     if (!material || !hasValidDims) return null;
 
-    if (useAdvanced) {
-      return calculateAdvancedNesting({
-        shape,
-        dims,
-        quantity,
-        sheetWidth: material.doekbreedte_mm,
-        sheetLength: sheetLength.toString(),
-        spacing: spacing.toString(),
-        kerf: kerf.toString(),
-        algorithm,
-        allowRotation,
-      });
-    } else {
-      return calculateNesting({
-        shape,
-        dims,
-        quantity,
-        sheetWidth: material.doekbreedte_mm,
-        spacing: spacing.toString(),
-        kerf: kerf.toString(),
-        // No orientation parameter - will auto-optimize
-      });
-    }
-  }, [
-    shape,
-    dims,
-    material,
-    quantity,
-    spacing,
-    kerf,
-    useAdvanced,
-    algorithm,
-    allowRotation,
-    sheetLength,
-    hasValidDims,
-  ]);
+    // Advanced nesting removed — always use simple calculateNesting for now
+    return calculateNesting({
+      shape,
+      dims,
+      quantity,
+      sheetWidth: material.doekbreedte_mm,
+      spacing: spacing.toString(),
+      kerf: kerf.toString(),
+    });
+  }, [shape, dims, material, quantity, spacing, kerf, hasValidDims]);
 
   const bbox = hasValidDims ? calculateBoundingBox(shape, dims) : null;
 
@@ -264,97 +244,7 @@ export function NestingPreview({ shape, dims, material, options = [], onAddConfi
     );
   };
 
-  const renderRollLayout = () => {
-    if (!nestingData) return null;
-
-    const piecesPerRow = parseInt(nestingData.pieces_per_row);
-    const rows = parseInt(nestingData.rows);
-    const isAdvanced = useAdvanced && (nestingData as any).algorithm_used;
-
-    // Check if part doesn't fit on sheet
-    if (piecesPerRow === 0 || nestingData.pieces_per_row === "0") {
-      return (
-        <div className="bg-muted/30 rounded-lg p-4 h-48 flex flex-col items-center justify-center">
-          <div className="text-xs text-muted-foreground mb-2">
-            Sheet width: {material?.doekbreedte_mm}mm
-          </div>
-          <div className="text-center">
-            <div className="text-red-500 font-medium mb-2">
-              ⚠️ Part too large
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Part dimensions exceed sheet width in both orientations.
-              <br />
-              Try reducing dimensions or selecting wider material.
-            </div>
-          </div>
-        </div>
-      );
-    }
-
-    if (isAdvanced) {
-      // Advanced nesting - show optimized layout
-      const placedPieces = (nestingData as any).pieces_placed?.length || 0;
-      const efficiency = (nestingData as any).efficiency_percent || "0";
-
-      return (
-        <div className="bg-muted/30 rounded-lg p-4 h-48">
-          <div className="text-xs text-muted-foreground mb-2">
-            Sheet: {material?.doekbreedte_mm}×{sheetLength}mm
-          </div>
-          <div className="flex flex-col justify-center h-32">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-primary mb-2">
-                {placedPieces}
-              </div>
-              <div className="text-sm text-muted-foreground mb-1">
-                pieces optimally placed
-              </div>
-              <div className="text-lg font-semibold text-green-600">
-                {efficiency}% efficiency
-              </div>
-            </div>
-          </div>
-          <div className="text-xs text-muted-foreground mt-2">
-            Optimized with{" "}
-            {(nestingData as any).algorithm_used?.replace("_", " ") ||
-              "advanced"}{" "}
-            algorithm
-          </div>
-        </div>
-      );
-    } else {
-      // Simple grid layout
-      const totalPieces = Math.min(quantity, piecesPerRow * rows);
-
-      return (
-        <div className="bg-muted/30 rounded-lg p-4 h-48">
-          <div className="text-xs text-muted-foreground mb-2">
-            Sheet width: {material?.doekbreedte_mm}mm
-          </div>
-          <div
-            className="grid gap-1 h-32"
-            style={{
-              gridTemplateColumns: `repeat(${Math.min(piecesPerRow, 8)}, 1fr)`,
-            }}
-          >
-            {Array.from({ length: Math.min(totalPieces, 24) }, (_, i) => (
-              <div
-                key={i}
-                className="bg-primary/20 border border-primary/40 rounded-sm flex items-center justify-center text-xs text-primary"
-                data-testid={`piece-${i + 1}`}
-              >
-                {i + 1}
-              </div>
-            ))}
-          </div>
-          <div className="text-xs text-muted-foreground mt-2">
-            {piecesPerRow} pieces × {rows} rows = {quantity} total
-          </div>
-        </div>
-      );
-    }
-  };
+  // Roll layout removed completely per request
 
   return (
     <>
@@ -379,10 +269,30 @@ export function NestingPreview({ shape, dims, material, options = [], onAddConfi
           {/* Roll Layout moved into Nesting Configuration below */}
         </div>
 
+        {/* Quantity control shown under the 2D viewer and above the action buttons */}
+        <div className="mt-4 mb-4">
+          <div className="grid grid-cols-2 items-center gap-4 max-w-sm">
+            <Label className="text-sm font-medium">Quantity</Label>
+            <Input
+              type="number"
+              min="1"
+              value={quantity}
+              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+              data-testid="input-quantity"
+            />
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div className="mt-8 flex gap-3">
-          <button
-            onClick={() => setShowNestingConfig(true)}
+            <button
+            onClick={() => {
+              // copy configured items into the local nesting configuration
+              if (Array.isArray(configuredItems)) {
+                setNestedItems(configuredItems as CartItem[]);
+              }
+              setShowNestingConfig(true);
+            }}
             className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition"
           >
             Proceed to nesting step
@@ -437,226 +347,52 @@ export function NestingPreview({ shape, dims, material, options = [], onAddConfi
         className="bg-card rounded-lg border border-border p-6 mb-6"
         data-testid="nesting-settings"
       >
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Nesting Configuration
-        </h2>
-
-        <div className="space-y-4">
-          <div className="flex items-center space-x-2">
-            <Switch
-              id="advanced-mode"
-              checked={useAdvanced}
-              onCheckedChange={setUseAdvanced}
-              data-testid="switch-advanced-mode"
-            />
-            <Label htmlFor="advanced-mode" className="text-sm font-medium">
-              Advanced Nesting Optimization
-            </Label>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-foreground mb-4">
+            Nesting Configuration
+          </h2>
+          <div>
+            <Button size="sm" variant="outline" onClick={() => {
+              if (Array.isArray(configuredItems)) {
+                setNestedItems(configuredItems as CartItem[]);
+              } else {
+                setNestedItems([]);
+              }
+            }}>
+              Reload configured shapes
+            </Button>
           </div>
-
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
-              <Label className="text-sm font-medium mb-2 block">Quantity</Label>
-              <Input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                data-testid="input-quantity"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Spacing (mm)
-              </Label>
-              <Input
-                type="number"
-                min="0"
-                value={spacing}
-                onChange={(e) => setSpacing(parseFloat(e.target.value) || 0)}
-                data-testid="input-spacing"
-              />
-            </div>
-            <div>
-              <Label className="text-sm font-medium mb-2 block">
-                Kerf (mm)
-              </Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.1"
-                value={kerf}
-                onChange={(e) => setKerf(parseFloat(e.target.value) || 0)}
-                data-testid="input-kerf"
-              />
-            </div>
-            {!useAdvanced ? (
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  Orientation
-                </Label>
-                <div
-                  className="h-10 px-3 py-2 bg-muted rounded-md flex items-center text-sm"
-                  data-testid="optimized-orientation"
-                >
-                  {nestingData
-                    ? `${nestingData.orientation === 0 ? "0°" : "90°"}`
-                    : "Auto-selected"}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  Sheet Length (mm)
-                </Label>
-                <Input
-                  type="number"
-                  min="1000"
-                  value={sheetLength}
-                  onChange={(e) =>
-                    setSheetLength(parseInt(e.target.value) || 3000)
-                  }
-                  data-testid="input-sheet-length"
-                />
-              </div>
-            )}
-          </div>
-
-          {useAdvanced && (
-            <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              <div>
-                <Label className="text-sm font-medium mb-2 block">
-                  Algorithm
-                </Label>
-                <Select
-                  value={algorithm}
-                  onValueChange={(
-                    value:
-                      | "simple"
-                      | "bottom_left_fill"
-                      | "best_fit"
-                      | "genetic",
-                  ) => setAlgorithm(value)}
-                >
-                  <SelectTrigger data-testid="select-algorithm">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="simple">Simple Grid</SelectItem>
-                    <SelectItem value="bottom_left_fill">
-                      Bottom-Left Fill
-                    </SelectItem>
-                    <SelectItem value="best_fit">Best Fit</SelectItem>
-                    <SelectItem value="genetic">Genetic Algorithm</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex items-center space-x-2 mt-6">
-                <Switch
-                  id="allow-rotation"
-                  checked={allowRotation}
-                  onCheckedChange={setAllowRotation}
-                  data-testid="switch-allow-rotation"
-                />
-                <Label htmlFor="allow-rotation" className="text-sm font-medium">
-                  Allow Rotation
-                </Label>
-              </div>
-            </div>
-          )}
         </div>
 
-        {nestingData && (
-          <div className="mt-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {!useAdvanced ? (
-                <>
-                  <div className="bg-accent/50 rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">
-                      Maximum pieces per Row
-                    </div>
-                    <div
-                      className="text-lg font-semibold text-foreground"
-                      data-testid="text-pieces-per-row"
-                    >
-                      {nestingData.pieces_per_row}
-                    </div>
-                  </div>
-                  <div className="bg-accent/50 rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">
-                      Number of Rows
-                    </div>
-                    <div
-                      className="text-lg font-semibold text-foreground"
-                      data-testid="text-number-of-rows"
-                    >
-                      {nestingData.rows}
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="bg-accent/50 rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">
-                      Algorithm
-                    </div>
-                    <div
-                      className="text-lg font-semibold text-foreground"
-                      data-testid="text-algorithm-used"
-                    >
-                      {(nestingData as any).algorithm_used?.replace("_", " ") ||
-                        "Simple"}
-                    </div>
-                  </div>
-                  <div className="bg-accent/50 rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">
-                      Efficiency
-                    </div>
-                    <div
-                      className="text-lg font-semibold text-foreground"
-                      data-testid="text-efficiency"
-                    >
-                      {(nestingData as any).efficiency_percent || "85"}%
-                    </div>
-                  </div>
-                  <div className="bg-accent/50 rounded-lg p-3">
-                    <div className="text-sm text-muted-foreground">
-                      Pieces Placed
-                    </div>
-                    <div
-                      className="text-lg font-semibold text-foreground"
-                      data-testid="text-pieces-placed"
-                    >
-                      {(nestingData as any).pieces_placed?.length || 0}
-                    </div>
-                  </div>
-                </>
-              )}
-              <div className="bg-accent/50 rounded-lg p-3">
-                <div className="text-sm text-muted-foreground">
-                  Material Usage
+        {/* Summary of configured items copied into nesting config */}
+        {nestedItems && nestedItems.length > 0 && (
+          <div className="mb-4">
+            <div className="text-sm text-muted-foreground mb-2">Configured articles summary</div>
+            <div className="space-y-2">
+              {Object.entries(
+                nestedItems.reduce<Record<string, { count: number; label: string }>>((acc, it) => {
+                  const key = it.material.artikelcode || 'unknown';
+                  if (!acc[key]) acc[key] = { count: 0, label: it.material.materiaalsoort || key };
+                  acc[key].count += (it.amount || 1);
+                  return acc;
+                }, {})
+              ).map(([code, info]) => (
+                <div key={code} className="flex items-center justify-between bg-muted/10 p-2 rounded">
+                  <div className="text-sm font-medium">{info.label} — {code}</div>
+                  <div className="text-sm text-muted-foreground">Quantity: {info.count}</div>
                 </div>
-                <div
-                  className="text-lg font-semibold text-foreground"
-                  data-testid="text-material-usage"
-                >
-                  {(
-                    Number(nestingData.material_m2.i) /
-                    Math.pow(10, nestingData.material_m2.scale)
-                  ).toFixed(2)}{" "}
-                  m²
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         )}
-        {/* Roll Layout Section moved here from the preview */}
-        <div className="mt-6">
-          <h3 className="text-sm font-medium text-muted-foreground mb-3">
-            Roll Layout
-          </h3>
-          {renderRollLayout()}
-        </div>
+
+        {/* Advanced nesting UI removed per request. The following controls were
+            intentionally removed: Advanced Optimization switch, Orientation/
+            Sheet Length input, Algorithm selector and Allow Rotation. */}
+
+        {/* Pieces/rows/material usage and the Roll Layout were removed per request.
+            The detailed cards and roll preview (previously shown here) are
+            intentionally commented-out/removed to simplify the UI. */}
       </div>
       )}
     </>

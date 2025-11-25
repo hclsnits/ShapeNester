@@ -24,6 +24,19 @@ import { loadCart, addToCart } from "@/lib/cartStorage";
 import { exportCartToPDF } from "@/lib/pdf";
 import { exportCartToXLSX } from "@/lib/xlsx";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { DxfExportOptions } from "@/lib/dxf";
 import { useToast } from "@/hooks/use-toast";
 import { v4 as uuidv4 } from "uuid";
 import {
@@ -46,10 +59,25 @@ function App() {
   const [selectedShipping, setSelectedShipping] = useState("standard");
   const [isWizardMode, setIsWizardMode] = useState(true);
   const [configuredShapes, setConfiguredShapes] = useState<CartItem[]>([]);
+  const [dxfSettings, setDxfSettings] = useState<DxfExportOptions>({ segments: 64, normalize: true, align: "bbox_origin" });
+  const [dxfDialogOpen, setDxfDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     setCartItems(loadCart());
+  }, []);
+
+  // load persisted DXF settings
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("dxfSettings");
+      if (raw) {
+        const parsed = JSON.parse(raw) as DxfExportOptions;
+        setDxfSettings((s) => ({ ...s, ...parsed }));
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
   }, []);
 
   const handleAddToCart = (item: CartItem) => {
@@ -167,6 +195,44 @@ function App() {
                 </>
               )}
             </Button>
+            <Dialog open={dxfDialogOpen} onOpenChange={setDxfDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Instellingen
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>DXF instellingen</DialogTitle>
+                  <DialogDescription>Kies curve-approximatie en uitlijning voor DXF exports.</DialogDescription>
+                </DialogHeader>
+
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 items-center gap-4">
+                    <Label>Curve segments</Label>
+                    <Input type="number" value={dxfSettings.segments} onChange={(e) => setDxfSettings(s => ({ ...s, segments: Number(e.target.value) }))} />
+                  </div>
+                  <div className="grid grid-cols-2 items-center gap-4">
+                    <Label>Normalize coordinates</Label>
+                    <Switch checked={!!dxfSettings.normalize} onCheckedChange={(v) => setDxfSettings(s => ({ ...s, normalize: !!v }))} />
+                  </div>
+                  <div className="grid grid-cols-2 items-center gap-4">
+                    <Label>Alignment</Label>
+                    <div className="text-sm text-muted-foreground">{dxfSettings.align}</div>
+                  </div>
+                </div>
+
+                <DialogFooter>
+                  <Button onClick={() => {
+                    try {
+                      localStorage.setItem("dxfSettings", JSON.stringify(dxfSettings));
+                    } catch (e) {}
+                    setDxfDialogOpen(false);
+                  }}>Save</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
             <Button
               variant="outline"
               onClick={handleExportPDF}
@@ -268,6 +334,7 @@ function App() {
                 }
                 options={options}
                 onAddConfiguredShape={handleAddConfiguredShape}
+                configuredItems={configuredShapes}
               />
             </div>
           </div>
@@ -281,6 +348,7 @@ function App() {
                   handleLoadItemInDesigner(it);
                 }}
                 onRemove={handleRemoveConfiguredShape}
+                dxfOptions={dxfSettings}
               />
             </div>
           </div>
