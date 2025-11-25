@@ -204,34 +204,49 @@ function App() {
           />
         </div>
       ) : (
-        /* Advanced Mode */
+        /* Advanced Mode - 5 Column Layout */
         <div className="flex flex-1 overflow-hidden">
-          {/* Left Sidebar */}
-          <div className="w-96 border-r border-border bg-card overflow-y-auto">
-            <div className="p-6 space-y-6">
+          {/* Column 1: Material Selection (1/5) */}
+          <div className="flex flex-col border-r border-border bg-card overflow-y-auto" style={{ width: "20%" }}>
+            <div className="p-6">
+              <h3 className="text-sm font-medium text-muted-foreground mb-3">Step 1 — Material selection</h3>
               <PortfolioFilters
                 selectedMaterial={selectedMaterial}
                 onMaterialSelect={setSelectedMaterial}
               />
-
-              <ShapeSelector
-                selectedShape={selectedShape}
-                onShapeSelect={setSelectedShape}
-              />
-
-              <ShapeDims
-                shape={selectedShape}
-                dims={shapeDims}
-                onDimsChange={setShapeDims}
-              />
-
-              <Options selectedOptions={options} onOptionsChange={setOptions} />
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 overflow-y-auto bg-background">
-            <div className="p-6">
+          {/* Column 2: Shape Selection & Dimensions (1/5) */}
+          <div className="flex flex-col border-r border-border bg-card overflow-y-auto" style={{ width: "20%" }}>
+            <div className="p-6 space-y-6">
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Step 2 — Shape selection</h3>
+                <ShapeSelector
+                  selectedShape={selectedShape}
+                  onShapeSelect={setSelectedShape}
+                />
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Step 3 — Shape dimensions</h3>
+                <ShapeDims
+                  shape={selectedShape}
+                  dims={shapeDims}
+                  onDimsChange={setShapeDims}
+                />
+              </div>
+
+              <div>
+                <h3 className="text-sm font-medium text-muted-foreground mb-3">Step 4 — Additional options</h3>
+                <Options selectedOptions={options} onOptionsChange={setOptions} />
+              </div>
+            </div>
+          </div>
+
+          {/* Column 3 & 4: Shape & Nesting Preview (2/5) */}
+          <div className="flex flex-col border-r border-border bg-card overflow-hidden" style={{ width: "40%" }}>
+            <div className="p-6 overflow-y-auto h-full">
               <NestingPreview
                 shape={selectedShape}
                 dims={shapeDims}
@@ -244,23 +259,13 @@ function App() {
             </div>
           </div>
 
-          {/* Right Panel */}
-          <div className="w-80 border-l border-border bg-card overflow-y-auto">
-            <CostingPanel
-              material={
-                selectedMaterial
-                  ? portfolioRowToMaterial(selectedMaterial)
-                  : null
-              }
-              shape={selectedShape}
-              dims={shapeDims}
-              options={options}
-              onAddToCart={handleAddToCart}
-            />
-            <ShippingPanel
-              selectedShipping={selectedShipping}
-              onShippingChange={setSelectedShipping}
-            />
+          {/* Column 5: Empty Space for Future Content (1/5) */}
+          <div className="flex flex-col border-l border-border bg-card overflow-y-auto" style={{ width: "20%" }}>
+            <div className="p-6">
+              <div className="h-full flex items-center justify-center text-muted-foreground">
+                <span className="text-sm">Future content area</span>
+              </div>
+            </div>
           </div>
         </div>
       )}

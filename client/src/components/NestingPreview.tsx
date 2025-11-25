@@ -30,6 +30,7 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
   const [useAdvanced, setUseAdvanced] = useState(false);
   const [allowRotation, setAllowRotation] = useState(true);
   const [sheetLength, setSheetLength] = useState(3000); // Default 3m sheets
+  const [showNestingConfig, setShowNestingConfig] = useState(false);
 
   const hasValidDims = (() => {
     switch (shape) {
@@ -298,8 +299,28 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
             {renderRollLayout()}
           </div>
         </div>
+
+        {/* Action Buttons */}
+        <div className="mt-8 flex gap-3">
+          <button
+            onClick={() => setShowNestingConfig(true)}
+            className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:bg-primary/90 transition"
+          >
+            Proceed to nesting step
+          </button>
+          <button
+            onClick={() => {
+              // Reset dims to allow adding another shape; user can edit as needed
+              setQuantity(20);
+            }}
+            className="flex-1 px-4 py-2 border border-input bg-background text-foreground rounded-md font-medium hover:bg-accent transition"
+          >
+            Add another shape
+          </button>
+        </div>
       </div>
 
+      {showNestingConfig && (
       <div
         className="bg-card rounded-lg border border-border p-6 mb-6"
         data-testid="nesting-settings"
@@ -518,6 +539,7 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
           </div>
         )}
       </div>
+      )}
     </>
   );
 }
