@@ -8,6 +8,7 @@ import { CostingPanel } from "@/components/CostingPanel";
 import { CartDrawer } from "@/components/CartDrawer";
 import { ShippingPanel } from "@/components/ShippingPanel";
 import { ConfigurationWizard } from "@/components/wizard/ConfigurationWizard";
+import ConfiguredShapesPanel from "@/components/ConfiguredShapesPanel";
 import {
   Material,
   ShapeKind,
@@ -44,6 +45,7 @@ function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [selectedShipping, setSelectedShipping] = useState("standard");
   const [isWizardMode, setIsWizardMode] = useState(true);
+  const [configuredShapes, setConfiguredShapes] = useState<CartItem[]>([]);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -69,6 +71,15 @@ function App() {
       title: "Item Loaded",
       description: "Item configuration loaded in designer.",
     });
+  };
+
+  const handleAddConfiguredShape = (item: CartItem) => {
+    setConfiguredShapes((s) => [item, ...s]);
+    toast({ title: "Shape added", description: "Configuration saved to the basket." });
+  };
+
+  const handleRemoveConfiguredShape = (id: string) => {
+    setConfiguredShapes((s) => s.filter((x) => x.id !== id));
   };
 
   const handleExportPDF = async () => {
@@ -255,16 +266,22 @@ function App() {
                     ? portfolioRowToMaterial(selectedMaterial)
                     : null
                 }
+                options={options}
+                onAddConfiguredShape={handleAddConfiguredShape}
               />
             </div>
           </div>
 
-          {/* Column 5: Empty Space for Future Content (1/5) */}
+          {/* Column 5: Configured Shapes Basket (1/5) */}
           <div className="flex flex-col border-l border-border bg-card overflow-y-auto" style={{ width: "20%" }}>
-            <div className="p-6">
-              <div className="h-full flex items-center justify-center text-muted-foreground">
-                <span className="text-sm">Future content area</span>
-              </div>
+            <div className="p-6 h-full">
+              <ConfiguredShapesPanel
+                items={configuredShapes}
+                onLoad={(it) => {
+                  handleLoadItemInDesigner(it);
+                }}
+                onRemove={handleRemoveConfiguredShape}
+              />
             </div>
           </div>
         </div>

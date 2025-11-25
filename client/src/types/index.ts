@@ -53,6 +53,7 @@ export type CartItem = {
   amount: number;
   nesting: NestingSummary;
   costing: CostBreakdown;
+  options?: string[];
 };
 
 export type BoundingBox = {

@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
-import { ShapeKind, ShapeDims, Material } from "@/types";
+import { ShapeKind, ShapeDims, Material, CartItem } from "@/types";
+import { v4 as uuidv4 } from "uuid";
 import { calculateBoundingBox } from "@/lib/geometry/bbox";
 import { calculateNesting } from "@/lib/nesting";
 import { calculateAdvancedNesting } from "@/lib/advanced-nesting";
@@ -18,9 +19,11 @@ interface NestingPreviewProps {
   shape: ShapeKind;
   dims: ShapeDims;
   material: Material | null;
+  options?: string[];
+  onAddConfiguredShape?: (item: CartItem) => void;
 }
 
-export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
+export function NestingPreview({ shape, dims, material, options = [], onAddConfiguredShape, }: NestingPreviewProps) {
   const [quantity, setQuantity] = useState(20);
   const [spacing, setSpacing] = useState(5);
   const [kerf, setKerf] = useState(1.5);
@@ -132,7 +135,6 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
     const bboxWidth = parseInt(bbox.width);
     const bboxHeight = parseInt(bbox.height);
 
-    // Guard against invalid dimensions
     if (
       !Number.isFinite(bboxWidth) ||
       !Number.isFinite(bboxHeight) ||
@@ -146,37 +148,119 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
       );
     }
 
-    const scale = Math.min(100 / bboxWidth, 60 / bboxHeight);
-    const scaledWidth = bboxWidth * scale;
-    const scaledHeight = bboxHeight * scale;
+    const renderShape2D = (
+      cx: number,
+      cy: number,
+      w: number,
+      h: number,
+    ) => {
+      if (shape === "rectangle") {
+        return <rect x={0} y={0} width={w} height={h} fill="black" stroke="none" />;
+      }
+
+      if (shape === "circle") {
+        const r = Math.min(w, h) / 2;
+        return <circle cx={cx} cy={cy} r={r} fill="black" stroke="none" />;
+      }
+
+      if (shape === "ring") {
+        const rOuter = Math.min(w, h) / 2;
+        const outerD = parseFloat(dims.outer_diameter || "0");
+        const innerD = parseFloat(dims.inner_diameter || "0");
+        const rInner = outerD > 0 ? (innerD / outerD) * rOuter : rOuter * 0.5;
+        return (
+          <>
+            <circle cx={cx} cy={cy} r={rOuter} fill="black" stroke="none" />
+            <circle cx={cx} cy={cy} r={rInner} fill="white" stroke="none" />
+          </>
+        );
+      }
+
+      if (shape === "triangle") {
+        return (
+          <polygon
+            points={`${w / 2},0 0,${h} ${w},${h}`}
+            fill="black"
+            stroke="none"
+          />
+        );
+      }
+
+      if (shape === "hexagon_flat") {
+        // flat-top hexagon scaled to bbox
+        const w2 = w;
+        const h2 = h;
+        const points = [
+          `${w2 * 0.5},0`,
+          `${w2},${h2 * 0.25}`,
+          `${w2},${h2 * 0.75}`,
+          `${w2 * 0.5},${h2}`,
+          `0,${h2 * 0.75}`,
+          `0,${h2 * 0.25}`,
+        ].join(" ");
+        return <polygon points={points} fill="black" stroke="none" />;
+      }
+
+      if (shape === "oval") {
+        return (
+          <ellipse cx={cx} cy={cy} rx={w / 2} ry={h / 2} fill="black" stroke="none" />
+        );
+      }
+
+      if (shape === "oval_ring") {
+        const outerRx = w / 2;
+        const outerRy = h / 2;
+        const outerMajor = parseFloat(dims.outer_major || "0");
+        const innerMajor = parseFloat(dims.inner_major || "0");
+        const ratio = outerMajor > 0 ? innerMajor / outerMajor : 0.5;
+        const innerRx = outerRx * ratio;
+        const innerRy = outerRy * ratio;
+        return (
+          <>
+            <ellipse cx={cx} cy={cy} rx={outerRx} ry={outerRy} fill="black" stroke="none" />
+            <ellipse cx={cx} cy={cy} rx={innerRx} ry={innerRy} fill="white" stroke="none" />
+          </>
+        );
+      }
+
+      // Fallback - rectangle
+      return <rect x={0} y={0} width={w} height={h} fill="black" stroke="none" />;
+    };
+
+    // Determine display size while keeping aspect ratio
+    const displayWidth = 320;
+    const displayHeight = Math.max(120, Math.round((displayWidth * bboxHeight) / bboxWidth));
+
+    const cx = bboxWidth / 2;
+    const cy = bboxHeight / 2;
 
     return (
-      <svg
-        width="120"
-        height="80"
-        viewBox="0 0 120 80"
-        className="border border-primary"
-        data-testid="shape-outline-svg"
-      >
-        <rect
-          x={(120 - scaledWidth) / 2}
-          y={(80 - scaledHeight) / 2}
-          width={scaledWidth}
-          height={scaledHeight}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          className="text-primary"
-        />
-        <text
-          x="60"
-          y="45"
-          textAnchor="middle"
-          className="text-xs fill-current text-muted-foreground"
+      <div className="flex flex-col items-center justify-center gap-4">
+        <svg
+          width="100%"
+          height="100%"
+          viewBox={`0 0 ${bboxWidth} ${bboxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
+          className="border-2 border-primary bg-white"
+          data-testid="shape-outline-svg"
         >
-          {bbox.width}×{bbox.height}mm
-        </text>
-      </svg>
+          <rect
+            x={0}
+            y={0}
+            width={bboxWidth}
+            height={bboxHeight}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={0.5}
+            strokeDasharray="2"
+            className="text-muted-foreground opacity-30"
+          />
+          {renderShape2D(cx, cy, bboxWidth, bboxHeight)}
+        </svg>
+        <div className="text-sm text-muted-foreground">
+          {bbox.width} × {bbox.height} mm
+        </div>
+      </div>
     );
   };
 
@@ -287,17 +371,12 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
             <h3 className="text-sm font-medium text-muted-foreground mb-3">
               Shape Outline
             </h3>
-            <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center h-48">
+            <div className="bg-muted/30 rounded-lg p-4 flex items-center justify-center h-[40vh] min-h-[200px] overflow-hidden">
               {renderShapeOutline()}
             </div>
           </div>
 
-          <div>
-            <h3 className="text-sm font-medium text-muted-foreground mb-3">
-              Roll Layout
-            </h3>
-            {renderRollLayout()}
-          </div>
+          {/* Roll Layout moved into Nesting Configuration below */}
         </div>
 
         {/* Action Buttons */}
@@ -310,7 +389,40 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
           </button>
           <button
             onClick={() => {
-              // Reset dims to allow adding another shape; user can edit as needed
+              // Create configured shape metadata and pass to parent
+              if (!material) return;
+              const nestingSummary = nestingData || {
+                orientation: 0 as 0 | 90,
+                pieces_per_row: "0",
+                rows: "0",
+                total_length_mm: "0",
+                rest_width_mm: "0",
+                material_m2: { i: "0", scale: 0 },
+              };
+
+              const costing = {
+                base_m2: nestingSummary.material_m2,
+                material_cost_cents: "0",
+                options_cost_cents: "0",
+                work_cost_cents: "0",
+                kot_cents: "0",
+                total_cents: "0",
+              };
+
+              const item: CartItem = {
+                id: uuidv4(),
+                created_at: new Date().toISOString(),
+                material,
+                shape,
+                dims: { ...dims },
+                amount: quantity,
+                nesting: nestingSummary,
+                costing,
+                options,
+              };
+
+              if (onAddConfiguredShape) onAddConfiguredShape(item);
+              // keep UI stable; optionally reset quantity
               setQuantity(20);
             }}
             className="flex-1 px-4 py-2 border border-input bg-background text-foreground rounded-md font-medium hover:bg-accent transition"
@@ -538,6 +650,13 @@ export function NestingPreview({ shape, dims, material }: NestingPreviewProps) {
             </div>
           </div>
         )}
+        {/* Roll Layout Section moved here from the preview */}
+        <div className="mt-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">
+            Roll Layout
+          </h3>
+          {renderRollLayout()}
+        </div>
       </div>
       )}
     </>
