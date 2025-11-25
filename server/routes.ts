@@ -11,7 +11,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Serve Excel portfolio file
   app.get("/api/portfolio/excel", (req, res) => {
     try {
-      const excelPath = path.resolve(import.meta.dirname, "..", "attached_assets", "wolviltportfolio_1758655145665.xls");
+      const excelPath = path.resolve(import.meta.dirname, "..", "attached_assets", "wolviltportfolio.xls");
       
       if (!fs.existsSync(excelPath)) {
         return res.status(404).json({ error: "Portfolio file not found" });
